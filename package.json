@@ -1,0 +1,17 @@
+{
+  "name": "matheat-erp-mes",
+  "version": "1.0.0",
+  "description": "Production-grade Heat Treatment ERP + MES for MATHEAT PVT. LTD.",
+  "private": true,
+  "scripts": {
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "website": "npm --prefix website run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "start": "node server/src/server.js",
+    "seed": "node server/src/seed.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

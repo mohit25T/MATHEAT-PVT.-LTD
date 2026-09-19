@@ -1,0 +1,214 @@
+@import './styles/furnace.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-navy: #0A192F;
+  --color-navy-dark: #040B15;
+  --color-orange: #FF6B00;
+  --color-orange-glow: rgba(255, 107, 0, 0.25);
+  --color-steel-light: #F8FAFC;
+  --color-border-tech: rgba(10, 25, 47, 0.12);
+}
+
+*,
+*::before,
+*::after,
+html,
+body,
+button,
+input,
+textarea,
+select,
+code,
+pre {
+  font-family: 'Times New Roman', Times, serif !important;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #F8FAFC;
+  color: #1E293B;
+  font-family: 'Times New Roman', Times, serif !important;
+  overflow-x: hidden;
+}
+
+/* Global Font Increase: arbitrary small sizes +4px */
+[class*="text-[9px]"] { font-size: 13px !important; }
+[class*="text-[10px]"] { font-size: 14px !important; }
+[class*="text-[11px]"] { font-size: 15px !important; }
+[class*="text-[12px]"] { font-size: 16px !important; }
+
+/* Refined Lower Shade for Text on Light Backgrounds (Smooth Dark Charcoal - High Legibility without Eye Strain) */
+.text-slate-700,
+.text-gray-700 {
+  color: #1E293B !important;
+}
+
+.text-slate-600,
+.text-gray-600 {
+  color: #334155 !important;
+}
+
+.text-slate-500,
+.text-slate-400,
+.text-gray-500,
+.text-gray-400 {
+  color: #475569 !important;
+}
+
+/* Ensure strong contrast for dark background sections (Furnace telemetry, technical section, CTA, footer) */
+.bg-navy-950 .text-slate-400,
+.bg-navy-950 .text-slate-500,
+.bg-navy-950 .text-slate-600,
+.bg-navy-950 .text-slate-700,
+.bg-navy-900 .text-slate-400,
+.bg-navy-900 .text-slate-500,
+.bg-navy-900 .text-slate-600,
+.bg-navy-900 .text-slate-700,
+.bg-navy-850 .text-slate-400,
+.bg-navy-850 .text-slate-500,
+.bg-navy-850 .text-slate-600,
+.bg-navy-850 .text-slate-700,
+footer .text-slate-400,
+footer .text-slate-500,
+footer .text-slate-600,
+footer .text-slate-700 {
+  color: #E2E8F0 !important;
+}
+
+.bg-navy-950 .text-slate-300,
+.bg-navy-900 .text-slate-300,
+.bg-navy-850 .text-slate-300,
+footer .text-slate-300 {
+  color: #FFFFFF !important;
+}
+
+
+/* Engineering Blueprint Pattern & Grid */
+.bg-cad-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(10, 25, 47, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(10, 25, 47, 0.035) 1px, transparent 1px);
+}
+
+.bg-cad-grid-dark {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+}
+
+.bg-cad-dots {
+  background-image: radial-gradient(rgba(10, 25, 47, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* CAD Technical Corner Marks (disabled) */
+.cad-corner {
+  position: relative;
+}
+
+
+/* Technical Line Drawing Keyframes */
+@keyframes drawStroke {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes thermalPulse {
+  0%, 100% {
+    opacity: 0.35;
+    filter: drop-shadow(0 0 4px rgba(255, 107, 0, 0.3));
+  }
+  50% {
+    opacity: 0.95;
+    filter: drop-shadow(0 0 16px rgba(255, 107, 0, 0.8));
+  }
+}
+
+@keyframes heatWaveFlow {
+  0% {
+    transform: translateY(0px) scaleY(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-8px) scaleY(1.15);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(-16px) scaleY(1);
+    opacity: 0;
+  }
+}
+
+@keyframes laserSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-thermal {
+  animation: thermalPulse 3s ease-in-out infinite;
+}
+
+.animate-heat-wave {
+  animation: heatWaveFlow 2.4s ease-out infinite;
+}
+
+.tech-line-draw {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawStroke 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* CAD Crosshairs */
+.cad-crosshair {
+  position: relative;
+}
+.cad-crosshair::before {
+  content: '+';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 14px;
+  color: #FF6B00;
+  opacity: 0.6;
+}
+
+/* Clean Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
