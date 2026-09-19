@@ -69,6 +69,3 @@ temp/
 # PDF test files
 *.pdf
 
-# Uploaded / generated assets that shouldn't be tracked
-assets/temp/
-public/temp/
