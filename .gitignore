@@ -69,3 +69,8 @@ temp/
 # PDF test files
 *.pdf
 
+# Server Uploads (Ignore uploaded image files, keep folder structure via .gitkeep)
+server/uploads/**/*.jpg
+server/uploads/**/*.jpeg
+server/uploads/**/*.png
+!server/uploads/**/.gitkeep
