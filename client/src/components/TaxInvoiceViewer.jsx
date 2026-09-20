@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
+import api from '../api/client';
 import {
   Printer,
   Download,
@@ -168,9 +169,11 @@ export const TaxInvoiceViewer = () => {
   };
 
   const handleDownloadPdf = async () => {
-    const fileName = `${getCleanInvoiceFileName()}.pdf`;
+    const cleanName = getCleanInvoiceFileName();
+    const fileName = `${cleanName}.pdf`;
+    const invoiceUrl = api.documents.getInvoiceUrl(cleanName);
     try {
-      const response = await fetch(`http://localhost:5000/api/documents/invoice/${getCleanInvoiceFileName()}`);
+      const response = await fetch(invoiceUrl);
       if (!response.ok) throw new Error('Network response was not ok');
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
@@ -183,7 +186,7 @@ export const TaxInvoiceViewer = () => {
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('Direct download failed, falling back to open:', err);
-      window.open(`http://localhost:5000/api/documents/invoice/${getCleanInvoiceFileName()}`, '_blank');
+      window.open(invoiceUrl, '_blank');
     }
   };
 

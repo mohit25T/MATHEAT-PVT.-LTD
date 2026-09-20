@@ -53,6 +53,15 @@ const grnSchema = new mongoose.Schema({
   receivedQuantity: { type: Number, required: true }, // pieces
   receivedWeight: { type: Number, required: true }, // kg
   
+  // Weighbridge & Gate Terminal Live Camera Verification
+  grossWeightKg: { type: Number },
+  tareWeightKg: { type: Number },
+  netWeightKg: { type: Number },
+  vehicleNumber: { type: String },
+  scalePhoto: { type: String }, // Base64 data URL or photo proof link
+  materialPhoto: { type: String }, // Live metal load image captured at gate
+  weighbridgeVerifiedAt: { type: Date },
+
   inspectionStatus: {
     type: String,
     enum: ['PENDING', 'ACCEPTED', 'ON_HOLD', 'REJECTED'],

@@ -180,17 +180,12 @@
 /* Text over Dark Backgrounds, Photos, Images, Buttons & Banners: SOOTHING SHADE OF WHITE (NO HARSH PROPER WHITE) */
 .text-white,
 .light-theme .text-white,
-.light-theme .text-white *,
 .light-theme [class*="bg-slate-950"] .text-white,
 .light-theme [class*="bg-black"] .text-white,
 .light-theme .bg-blue-600,
-.light-theme .bg-blue-600 *,
 .light-theme .bg-orange-600,
-.light-theme .bg-orange-600 *,
 .light-theme .bg-\[\#0b2545\],
-.light-theme .bg-\[\#0b2545\] *,
 .light-theme .bg-\[\#ea580c\],
-.light-theme .bg-\[\#ea580c\] *,
 .furnace-text-white {
   color: #f8fafc !important; /* Refined shade of white */
 }
@@ -212,11 +207,15 @@
 /* Input Fields & Dropdowns in Shade of White with Sharp Black Text */
 .light-theme input,
 .light-theme select,
-.light-theme textarea {
-  background-color: #f8fafc !important; /* Shade of white */
+.light-theme textarea,
+.light-theme input[type="text"],
+.light-theme input[type="number"] {
+  background-color: #f1f5f9 !important; /* Shade of white */
   color: #000000 !important;
-  border: 1px solid #0f172a !important;
-  font-weight: 600 !important;
+  -webkit-text-fill-color: #000000 !important;
+  border: 1.5px solid #000000 !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
 }
 
 .light-theme input:focus,
@@ -449,4 +448,91 @@
     display: block !important;
     margin: auto !important;
   }
+
+  /* Backdrop reset so only the modal slip prints */
+  .gate-pass-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    inset: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Gate Pass Slip Printable Styling - Strict Single Page A5 (148mm x 210mm) */
+  #printable-gate-slip {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 138mm !important;
+    height: 198mm !important;
+    min-height: 198mm !important;
+    max-height: 198mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 2.5mm 3.5mm !important;
+    box-shadow: none !important;
+    border: 1.2px solid #000000 !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    overflow: hidden !important;
+  }
+
+  #printable-gate-slip img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    display: block !important;
+    max-height: 75px !important;
+    object-fit: cover !important;
+  }
+
+  /* Watermark in Gate Slip Print (A5 proportions) */
+  .gate-slip-watermark {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .gate-slip-watermark img {
+    width: 200px !important;
+    max-width: 55% !important;
+    height: auto !important;
+    opacity: 0.07 !important;
+    display: block !important;
+    margin: auto !important;
+    border: none !important;
+  }
+
+  .gate-slip-watermark .watermark-text {
+    opacity: 0.06 !important;
+    display: block !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
+

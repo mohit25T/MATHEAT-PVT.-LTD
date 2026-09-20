@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
 
 import { connectDB } from './config/db.js';
 import { seedDatabase } from './seed.js';
@@ -21,6 +22,7 @@ import commercialRoutes from './routes/commercialRoutes.js';
 import maintenanceRoutes from './routes/maintenanceRoutes.js';
 import traceabilityRoutes from './routes/traceabilityRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
+import gateRoutes from './routes/gateRoutes.js';
 
 dotenv.config();
 
@@ -30,13 +32,23 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 7000;
 
-// Standard Middlewares
+// Standard Middlewares (with 50mb limit for camera base64 images)
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Request Logging Middleware (logs every API call with DB name)
+app.use((req, res, next) => {
+  const dbName = mongoose.connection.name || 'MATHEAT';
+  console.log(`[API CALL] ${req.method} ${req.originalUrl} | Database: ${dbName}`);
+  next();
+});
 
 // Serve static assets (such as company logo)
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
+
+// Serve uploaded weighing machine & load CCTV images
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -52,13 +64,18 @@ app.use('/api/commercial', commercialRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/traceability', traceabilityRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/gate', gateRoutes);
 
-// Health Check Endpoint
+// Health Check Endpoint (returns DB name and status)
 app.get('/api/health', (req, res) => {
+  const dbName = mongoose.connection.name || 'MATHEAT';
+  const dbHost = mongoose.connection.host || 'apexit.2qbg0ge.mongodb.net';
   res.json({
     status: 'OK',
     company: 'MATHEAT PVT. LTD.',
     system: 'Heat Treatment ERP + MES',
+    dbName: dbName,
+    dbHost: dbHost,
     timestamp: new Date().toISOString()
   });
 });
@@ -76,6 +93,7 @@ const startServer = async () => {
       console.log(`====================================================`);
       console.log(`🔥 MATHEAT Heat Treatment ERP + MES Server Running`);
       console.log(`🚀 Port: ${PORT}`);
+      console.log(`🗄️ Database Connected: ${mongoose.connection.name || 'MATHEAT'}`);
       console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`====================================================`);
     });

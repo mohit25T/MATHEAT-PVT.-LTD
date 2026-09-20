@@ -24,6 +24,14 @@ const dispatchSchema = new mongoose.Schema({
   quantityPcs: { type: Number, required: true },
   weightKg: { type: Number, required: true },
   
+  // Weighbridge & Gate Terminal Live Camera Verification
+  grossWeightKg: { type: Number },
+  tareWeightKg: { type: Number },
+  netWeightKg: { type: Number },
+  scalePhoto: { type: String }, // Base64 or snapshot URL
+  materialPhoto: { type: String }, // Metal load snapshot URL
+  weighbridgeVerifiedAt: { type: Date },
+
   vehicleNumber: { type: String, required: true },
   transporterName: { type: String, default: 'V-Trans Express Logistics' },
   lrNumber: { type: String },

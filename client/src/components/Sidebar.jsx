@@ -26,7 +26,8 @@ export const Sidebar = ({
   isCollapsed,
   setIsCollapsed,
   mobileOpen,
-  setMobileOpen
+  setMobileOpen,
+  onOpenGate
 }) => {
   const { isLight } = useTheme();
 
@@ -40,8 +41,9 @@ export const Sidebar = ({
       ]
     },
     {
-      group: 'JOB WORK & INWARD',
+      group: 'GATE & INWARD/OUTWARD',
       items: [
+        { id: 'gate-terminal', label: 'Weighbridge Gate (Live Cam)', icon: Truck, highlight: true, badge: 'CAM' },
         { id: 'grn', label: 'Material Inward (GRN)', icon: PackagePlus },
         { id: 'job-orders', label: 'Job Work Orders', icon: ClipboardList }
       ]
@@ -152,20 +154,24 @@ export const Sidebar = ({
                     <button
                       key={item.id}
                       onClick={() => {
-                        setActiveTab(item.id);
+                        if (item.id === 'gate-terminal' && onOpenGate) {
+                          onOpenGate();
+                        } else {
+                          setActiveTab(item.id);
+                        }
                         if (setMobileOpen) setMobileOpen(false);
                       }}
                       title={isCollapsed ? item.label : undefined}
                       className={`w-full flex items-center ${
                         isCollapsed ? 'justify-center px-2 py-2.5' : 'justify-between px-2.5 py-2'
-                      } text-xs font-medium rounded-lg transition-all relative group ${
+                      } text-xs rounded-lg transition-all relative group ${
                         isActive
                           ? isThermal
-                            ? 'bg-orange-600 text-white font-semibold shadow-sm ring-1 ring-orange-500/50'
-                            : 'bg-blue-600 text-white font-semibold shadow-sm ring-1 ring-blue-500/50'
+                            ? 'bg-orange-600 text-[#f8fafc] font-black shadow-sm ring-1 ring-orange-500/50'
+                            : 'bg-blue-600 text-[#f8fafc] font-black shadow-sm ring-1 ring-blue-500/50'
                           : isLight
-                          ? 'text-slate-700 hover:bg-blue-50/70 hover:text-blue-700'
-                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          ? 'text-black font-bold hover:bg-[#e2e8f0] hover:text-blue-700'
+                          : 'text-slate-200 hover:bg-slate-800 hover:text-white font-medium'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">

@@ -12,6 +12,7 @@ import {
   FileBadge
 } from 'lucide-react';
 import { TaxInvoiceViewer } from '../components/TaxInvoiceViewer';
+import api from '../api/client';
 
 export const CommercialPage = ({ onSelectTab }) => {
   const [activeSubTab, setActiveSubTab] = useState('tax-invoice'); // 'tax-invoice', 'invoices', 'dispatch', 'costing'
@@ -85,7 +86,7 @@ export const CommercialPage = ({ onSelectTab }) => {
   ];
 
   const handleDownloadInvoice = (invNum) => {
-    window.open(`http://localhost:5000/api/documents/invoice/${invNum}`, '_blank');
+    window.open(api.documents.getInvoiceUrl(invNum), '_blank');
   };
 
   return (

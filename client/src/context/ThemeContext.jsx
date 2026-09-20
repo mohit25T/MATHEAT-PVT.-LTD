@@ -13,8 +13,10 @@ export const ThemeProvider = ({ children }) => {
     if (theme === 'light') {
       root.classList.add('light-theme');
       root.classList.remove('dark-theme');
+      root.classList.remove('dark');
     } else {
       root.classList.add('dark-theme');
+      root.classList.add('dark');
       root.classList.remove('light-theme');
     }
   }, [theme]);

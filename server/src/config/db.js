@@ -4,13 +4,13 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 let mongoMemoryServer = null;
 
 export const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
+  const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
   if (uri) {
     try {
-      console.log(`[DB] Attempting connection to configured MongoDB: ${uri}`);
+      console.log(`[DB] Attempting connection to configured MongoDB...`);
       const conn = await mongoose.connect(uri, {
-        serverSelectionTimeoutMS: 3000
+        serverSelectionTimeoutMS: 10000
       });
       console.log(`[DB] Connected to MongoDB: ${conn.connection.host}`);
       return conn;

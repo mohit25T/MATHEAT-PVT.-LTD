@@ -11,6 +11,7 @@ import {
   Flame,
   Award
 } from 'lucide-react';
+import api from '../api/client';
 
 export const CertificatePage = () => {
   const [selectedBatch, setSelectedBatch] = useState('HT-2026-000124');
@@ -118,7 +119,7 @@ export const CertificatePage = () => {
   };
 
   const handleDownloadPdf = () => {
-    window.open(`http://localhost:5000/api/documents/certificate/${selectedBatch}`, '_blank');
+    window.open(api.documents.getCertificateUrl(selectedBatch), '_blank');
   };
 
   const handlePrint = () => {
