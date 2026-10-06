@@ -707,6 +707,8 @@ export const update = async (req, res, next) => {
       'burningLossKg',
       'actualTransferTimeSeconds',
       'status',
+      'currentPhase',
+      'confirmedPhases',
       'notes'
     ];
 

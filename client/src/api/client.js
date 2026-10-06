@@ -259,6 +259,20 @@ export const request = async (method, endpoint, data = null, customHeaders = {})
     if (!res.ok) {
       const errorBody = await res.json().catch(() => ({}));
       const errorMsg = errorBody.message || `Request failed with status ${res.status}`;
+
+      // Automatic Logout on 401 Unauthorized (Expired or invalid token)
+      if (res.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/verify-admin-password')) {
+        console.warn(`🔒 [AUTH] Token expired or unauthorized (${errorMsg}). Performing automatic logout...`);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('matheat_token');
+          localStorage.removeItem('matheat_user');
+          clearCache();
+          window.dispatchEvent(new CustomEvent('matheat_token_expired', {
+            detail: { message: errorMsg }
+          }));
+        }
+      }
+
       console.error(
         `%c❌ [API ERROR ${res.status}]: ${upperMethod} ${endpoint}`,
         'background: #450a0a; color: #f87171; font-weight: bold; padding: 2px 6px; border-radius: 4px;',

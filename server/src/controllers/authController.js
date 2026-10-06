@@ -6,13 +6,29 @@ import { ROLES } from '../config/constants.js';
 // 1. LOGIN
 export const login = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
+    const { username, password } = req.body || {};
+    const cleanUsername = (username || '').trim();
+    if (!cleanUsername || !password) {
       return res.status(400).json({ success: false, message: 'Please provide username and password.' });
     }
 
-    const user = await User.findOne({ username });
-    if (!user || !(await user.matchPassword(password))) {
+    // Direct MongoDB lookup by username (case-insensitive) or email
+    const safeRegex = cleanUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const user = await User.findOne({
+      $or: [
+        { username: cleanUsername },
+        { username: new RegExp(`^${safeRegex}$`, 'i') },
+        { email: cleanUsername.toLowerCase() }
+      ]
+    });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+    }
+
+    // Verify password strictly against database hashed password
+    const isPasswordValid = await user.matchPassword(password);
+    if (!isPasswordValid) {
       return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     }
 
@@ -137,6 +153,7 @@ export const updateUser = async (req, res, next) => {
       const user = await User.findById(id);
       if (!user) return res.status(404).json({ success: false, message: 'User not found' });
       Object.assign(user, body);
+      user.markModified('password');
       await user.save();
       const userResponse = user.toObject();
       delete userResponse.password;
@@ -214,17 +231,6 @@ export const verifyAdminPassword = async (req, res, next) => {
       }
     }
 
-    // 3. Fallback check for default seeded admin credentials ('admin' / 'admin@123')
-    if (!authorizedAdmin && password === 'admin@123') {
-      authorizedAdmin = {
-        _id: 'default-admin-id',
-        username: 'admin',
-        firstName: 'Admin',
-        lastName: 'MATHEAT',
-        role: ROLES.ADMIN
-      };
-    }
-
     if (!authorizedAdmin) {
       return res.status(401).json({
         success: false,
@@ -300,6 +306,7 @@ export const changePassword = async (req, res, next) => {
     }
 
     user.password = newPassword;
+    user.markModified('password');
     await user.save();
 
     await logAudit({
@@ -311,9 +318,12 @@ export const changePassword = async (req, res, next) => {
       description: `User ${user.username} (${user.firstName} ${user.lastName}) changed their password successfully.`
     });
 
+    const token = generateToken(user._id, user.role);
+
     return res.json({
       success: true,
-      message: 'Password has been updated successfully.'
+      message: 'Password has been updated successfully in database.',
+      token
     });
   } catch (error) {
     next(error);
@@ -339,6 +349,7 @@ export const resetUserPassword = async (req, res, next) => {
     }
 
     targetUser.password = newPassword;
+    targetUser.markModified('password');
     await targetUser.save();
 
     await logAudit({

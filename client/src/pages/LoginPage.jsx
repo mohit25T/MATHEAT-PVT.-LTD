@@ -3,7 +3,7 @@ import { Flame, Lock, User, Eye, EyeOff, AlertCircle, Shield, Activity } from 'l
 import { useAuth } from '../context/AuthContext';
 
 export const LoginPage = ({ onLoginSuccess }) => {
-  const { login } = useAuth();
+  const { login, sessionNotice } = useAuth();
   const [form, setForm] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -119,6 +119,14 @@ export const LoginPage = ({ onLoginSuccess }) => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="px-8 py-6 space-y-5">
+              {/* Session Expired / Status Notice */}
+              {sessionNotice && !error && (
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-950/60 border border-amber-800 text-amber-200 text-xs font-semibold animate-in fade-in">
+                  <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span>{sessionNotice}</span>
+                </div>
+              )}
+
               {/* Error Alert */}
               {error && (
                 <div className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-950/50 border border-rose-900 text-rose-300 text-xs font-semibold">

@@ -66,38 +66,40 @@ describe('MATHEAT PVT. LTD. — End-to-End Heat-Treatment ERP Lifecycle Test', (
     await Furnace.deleteMany({ furnaceId: /^FURNACE-SQF/ });
     await QCInstrument.deleteMany({ instrumentId: /^INST-/ });
 
-    // Ensure admin user exists with password admin@123
-    let admin = await User.findOne({ username: 'admin' });
-    if (!admin) {
-      await User.create({
-        username: 'admin',
-        email: 'admin@matheat.com',
-        password: 'admin@123',
-        firstName: 'Admin',
-        lastName: 'MATHEAT',
+    // Use an isolated test runner user so the real admin account is never mutated
+    let testUser = await User.findOne({ username: 'test_automation_admin' });
+    if (!testUser) {
+      testUser = await User.create({
+        username: 'test_automation_admin',
+        email: 'test_automation_admin@matheat.internal',
+        password: 'testPassword@123',
+        firstName: 'Automation',
+        lastName: 'Tester',
         role: ROLES.ADMIN,
-        department: 'Management',
+        department: 'Quality Assurance',
         isActive: true
       });
     } else {
-      admin.password = 'admin@123';
-      admin.isActive = true;
-      await admin.save();
+      testUser.password = 'testPassword@123';
+      testUser.isActive = true;
+      testUser.markModified('password');
+      await testUser.save();
     }
 
-    // Login as admin
+    // Login as test admin
     const loginRes = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'admin@123' })
+      body: JSON.stringify({ username: 'test_automation_admin', password: 'testPassword@123' })
     });
     const loginData = await loginRes.json();
-    assert.equal(loginRes.status, 200, 'Admin login must succeed');
+    assert.equal(loginRes.status, 200, 'Test admin login must succeed');
     assert.ok(loginData.token, 'JWT token must be returned');
     authToken = loginData.token;
   });
 
   after(async () => {
+    await User.deleteMany({ username: 'test_automation_admin' });
     if (server) {
       await new Promise((resolve) => server.close(resolve));
     }
@@ -541,7 +543,8 @@ describe('MATHEAT PVT. LTD. — End-to-End Heat-Treatment ERP Lifecycle Test', (
 
     // 2. Valid admin password must authorize the modification
     const validRes = await apiCall('/auth/verify-admin-password', 'POST', {
-      password: 'admin@123',
+      username: 'test_automation_admin',
+      password: 'testPassword@123',
       stage: 'LOADING',
       batchId,
       reason: 'Tare scale recalibration override'
@@ -576,7 +579,7 @@ describe('MATHEAT PVT. LTD. — End-to-End Heat-Treatment ERP Lifecycle Test', (
 
     // 2. Mismatched confirmation password must be rejected
     const mismatchRes = await apiCall('/auth/change-password', 'POST', {
-      currentPassword: 'admin@123',
+      currentPassword: 'testPassword@123',
       newPassword: 'newPassword@456',
       confirmPassword: 'differentPassword@789'
     });
@@ -584,30 +587,30 @@ describe('MATHEAT PVT. LTD. — End-to-End Heat-Treatment ERP Lifecycle Test', (
 
     // 3. Valid password change must succeed
     const changeRes = await apiCall('/auth/change-password', 'POST', {
-      currentPassword: 'admin@123',
-      newPassword: 'admin@newPass2026',
-      confirmPassword: 'admin@newPass2026'
+      currentPassword: 'testPassword@123',
+      newPassword: 'brandNewSecurePass@999',
+      confirmPassword: 'brandNewSecurePass@999'
     });
     assert.equal(changeRes.status, 200);
     assert.equal(changeRes.data.success, true);
 
-    // 4. Verification: login with newly changed password succeeds
+    // 4. CRITICAL CHECK: Logging in with OLD password MUST FAIL with 401 Unauthorized
+    const oldLoginAttempt = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'test_automation_admin', password: 'testPassword@123' })
+    });
+    assert.equal(oldLoginAttempt.status, 401, 'Login with old password MUST be rejected with 401');
+
+    // 5. Verification: login with newly changed password succeeds
     const newLoginRes = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'admin@newPass2026' })
+      body: JSON.stringify({ username: 'test_automation_admin', password: 'brandNewSecurePass@999' })
     });
     assert.equal(newLoginRes.status, 200, 'Login with updated password must succeed');
     const newLoginData = await newLoginRes.json();
     authToken = newLoginData.token;
-
-    // 5. Restore original password admin@123 to keep seeded environment consistent
-    const restoreRes = await apiCall('/auth/change-password', 'POST', {
-      currentPassword: 'admin@newPass2026',
-      newPassword: 'admin@123',
-      confirmPassword: 'admin@123'
-    });
-    assert.equal(restoreRes.status, 200);
 
     // 6. Test Admin resetting another user's password
     const usersListRes = await apiCall('/auth/users');

@@ -75,6 +75,15 @@ const batchSchema = new mongoose.Schema({
     enum: Object.values(BATCH_STATUS),
     default: BATCH_STATUS.PLANNED
   },
+  currentPhase: {
+    type: String,
+    enum: ['LOADING', 'HEATING', 'SOAKING', 'QUENCHING', 'TEMPERING', 'COMPLETE'],
+    default: 'LOADING'
+  },
+  confirmedPhases: {
+    type: [String],
+    default: []
+  },
   
   qcStatus: {
     type: String,

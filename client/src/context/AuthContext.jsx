@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../api/client';
 
 const AuthContext = createContext(null);
@@ -146,8 +146,58 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [token, setToken] = useState(() => localStorage.getItem('matheat_token') || null);
+  const [sessionNotice, setSessionNotice] = useState('');
+
+  const logout = (notice = '') => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('matheat_user');
+    localStorage.removeItem('matheat_token');
+    if (notice) {
+      setSessionNotice(notice);
+    }
+  };
+
+  const clearSessionNotice = () => setSessionNotice('');
+
+  // 1. Listen for automatic token expiration events from api/client
+  useEffect(() => {
+    const handleTokenExpired = (e) => {
+      const reason = e?.detail?.message || 'Your session has expired. Please sign in again.';
+      logout(reason);
+    };
+
+    window.addEventListener('matheat_token_expired', handleTokenExpired);
+
+    // 2. On app mount, validate existing session against MongoDB backend if token exists
+    const validateExistingSession = async () => {
+      const savedToken = localStorage.getItem('matheat_token');
+      if (!savedToken) return;
+
+      try {
+        const res = await api.auth.me();
+        if (res && res.success && res.user) {
+          setUser(res.user);
+          localStorage.setItem('matheat_user', JSON.stringify(res.user));
+        } else {
+          logout('Session invalid or user deactivated. Please log in.');
+        }
+      } catch (err) {
+        // Token was invalid or expired
+        console.warn('Initial session validation failed:', err.message);
+        logout('Your session has expired. Please log in to continue.');
+      }
+    };
+
+    validateExistingSession();
+
+    return () => {
+      window.removeEventListener('matheat_token_expired', handleTokenExpired);
+    };
+  }, []);
 
   const login = async (username, password) => {
+    setSessionNotice('');
     const data = await api.auth.login({ username, password });
     if (data && data.success) {
       setUser(data.user);
@@ -159,15 +209,8 @@ export const AuthProvider = ({ children }) => {
     throw new Error(data?.message || 'Invalid credentials');
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('matheat_user');
-    localStorage.removeItem('matheat_token');
-  };
-
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, canAccess }}>
+    <AuthContext.Provider value={{ user, token, sessionNotice, clearSessionNotice, login, logout, canAccess }}>
       {children}
     </AuthContext.Provider>
   );

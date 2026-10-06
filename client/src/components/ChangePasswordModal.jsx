@@ -81,6 +81,9 @@ export const ChangePasswordModal = ({
           newPassword,
           confirmPassword
         });
+        if (res?.token) {
+          localStorage.setItem('matheat_token', res.token);
+        }
         setSuccessMsg(res?.message || 'Password changed successfully!');
       } else {
         // Admin resetting another staff member's password

@@ -160,7 +160,26 @@ export const OperatorPage = () => {
       setSubmitSuccess(false);
       setErrorMessage('');
 
-      // Initialize confirmed stages from localStorage or batch status
+      // 1. Initialize confirmed stages directly from MongoDB backend if available
+      const dbConfirmed = Array.isArray(currentBatch.confirmedPhases) && currentBatch.confirmedPhases.length > 0
+        ? currentBatch.confirmedPhases
+        : null;
+      const dbPhase = currentBatch.currentPhase || null;
+
+      if (dbConfirmed && dbConfirmed.length > 0) {
+        setConfirmedPhases(dbConfirmed);
+        const phaseOrder = ['LOADING', 'HEATING', 'SOAKING', 'QUENCHING', 'TEMPERING', 'COMPLETE'];
+        const activeOrNext = dbPhase || (() => {
+          const lastConfirmed = dbConfirmed[dbConfirmed.length - 1];
+          const nextIdx = phaseOrder.indexOf(lastConfirmed) + 1;
+          return nextIdx < phaseOrder.length ? phaseOrder[nextIdx] : 'COMPLETE';
+        })();
+        setActiveRunPhase(activeOrNext);
+        setCurrentPhase(activeOrNext);
+        return;
+      }
+
+      // 2. Fallback to localStorage if present
       const saved = localStorage.getItem(`matheat_confirmed_${bId}`);
       if (saved) {
         try {
@@ -178,7 +197,7 @@ export const OperatorPage = () => {
         } catch (e) {}
       }
 
-      // If no localStorage record, infer from active batch status
+      // 3. Fallback to inferring from batch status in DB
       const st = currentBatch.status || 'PLANNED';
       if (st === 'HEATING') {
         setConfirmedPhases(['LOADING']);
@@ -206,7 +225,7 @@ export const OperatorPage = () => {
         setCurrentPhase('LOADING');
       }
     }
-  }, [currentBatch?.batchId, selectedFurnaceId]);
+  }, [currentBatch?.batchId, currentBatch?.status, currentBatch?.currentPhase, currentBatch?.confirmedPhases, selectedFurnaceId]);
 
   // Phase Lock status helpers
   const isPhaseConfirmed = (phaseId) => confirmedPhases.includes(phaseId);
@@ -334,46 +353,54 @@ export const OperatorPage = () => {
   const isReconciled = weightDifference <= 2.0; // Allowed 2kg process scaling tolerance
 
   // Advance Phase with Safety Guard and Immutability Lock
-  const handleProceedNextPhase = () => {
+  const handleProceedNextPhase = async () => {
     setErrorMessage('');
     setSoakTimerWarning('');
 
     const targetId = currentBatch?.batchId || currentBatch?._id;
+    let nextConfirmed = [];
+    let nextPhase = 'LOADING';
 
     if (currentPhase === 'LOADING') {
-      const nextConfirmed = Array.from(new Set([...confirmedPhases, 'LOADING']));
-      setConfirmedPhases(nextConfirmed);
-      if (targetId) localStorage.setItem(`matheat_confirmed_${targetId}`, JSON.stringify(nextConfirmed));
-      setActiveRunPhase('HEATING');
-      setCurrentPhase('HEATING');
+      nextConfirmed = Array.from(new Set([...confirmedPhases, 'LOADING']));
+      nextPhase = 'HEATING';
     } else if (currentPhase === 'HEATING') {
-      const nextConfirmed = Array.from(new Set([...confirmedPhases, 'HEATING']));
-      setConfirmedPhases(nextConfirmed);
-      if (targetId) localStorage.setItem(`matheat_confirmed_${targetId}`, JSON.stringify(nextConfirmed));
-      setActiveRunPhase('SOAKING');
-      setCurrentPhase('SOAKING');
+      nextConfirmed = Array.from(new Set([...confirmedPhases, 'HEATING']));
+      nextPhase = 'SOAKING';
     } else if (currentPhase === 'SOAKING') {
       if (soakElapsedMins < targetSoakMins) {
         setSoakTimerWarning(`CAUTION: Elapsed soak (${soakElapsedMins}m) is less than required recipe soak (${targetSoakMins}m). Metallurgist override required!`);
         return;
       }
-      const nextConfirmed = Array.from(new Set([...confirmedPhases, 'SOAKING']));
-      setConfirmedPhases(nextConfirmed);
-      if (targetId) localStorage.setItem(`matheat_confirmed_${targetId}`, JSON.stringify(nextConfirmed));
-      setActiveRunPhase('QUENCHING');
-      setCurrentPhase('QUENCHING');
+      nextConfirmed = Array.from(new Set([...confirmedPhases, 'SOAKING']));
+      nextPhase = 'QUENCHING';
     } else if (currentPhase === 'QUENCHING') {
-      const nextConfirmed = Array.from(new Set([...confirmedPhases, 'QUENCHING']));
-      setConfirmedPhases(nextConfirmed);
-      if (targetId) localStorage.setItem(`matheat_confirmed_${targetId}`, JSON.stringify(nextConfirmed));
-      setActiveRunPhase('TEMPERING');
-      setCurrentPhase('TEMPERING');
+      nextConfirmed = Array.from(new Set([...confirmedPhases, 'QUENCHING']));
+      nextPhase = 'TEMPERING';
     } else if (currentPhase === 'TEMPERING') {
-      const nextConfirmed = Array.from(new Set([...confirmedPhases, 'TEMPERING']));
-      setConfirmedPhases(nextConfirmed);
-      if (targetId) localStorage.setItem(`matheat_confirmed_${targetId}`, JSON.stringify(nextConfirmed));
-      setActiveRunPhase('COMPLETE');
-      setCurrentPhase('COMPLETE');
+      nextConfirmed = Array.from(new Set([...confirmedPhases, 'TEMPERING']));
+      nextPhase = 'COMPLETE';
+    }
+
+    setConfirmedPhases(nextConfirmed);
+    setActiveRunPhase(nextPhase);
+    setCurrentPhase(nextPhase);
+
+    if (targetId) {
+      localStorage.setItem(`matheat_confirmed_${targetId}`, JSON.stringify(nextConfirmed));
+      try {
+        // Persist to MongoDB backend so ALL client instances (localhost, live domains, tablets) stay 100% in sync!
+        await api.batches.update(targetId, {
+          status: nextPhase,
+          currentPhase: nextPhase,
+          confirmedPhases: nextConfirmed
+        });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('matheat_data_invalidated', { detail: { type: 'batch_phase_advanced' } }));
+        }
+      } catch (err) {
+        console.warn('Could not sync batch phase to backend DB:', err.message);
+      }
     }
   };
 
