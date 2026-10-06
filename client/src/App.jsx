@@ -5,6 +5,7 @@ import { DropdownProvider } from './context/DropdownContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { LoginPage } from './pages/LoginPage';
+import { GateTerminalPage } from './pages/GateTerminalPage';
 import { useAppRouter, RouteView } from './routes';
 import { prewarmAllCaches } from './api/client';
 
