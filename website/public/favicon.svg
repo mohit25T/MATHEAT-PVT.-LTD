@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Navy Technical Frame -->
+  <rect x="2" y="2" width="60" height="60" rx="6" fill="#0A192F" stroke="#1E3A8A" stroke-width="2"/>
+  <!-- Engineering Grid lines -->
+  <path d="M2 32H62 M32 2V62" stroke="#1E293B" stroke-width="1" stroke-dasharray="2 2"/>
+  <!-- Heat Furnace Crucible Outline -->
+  <path d="M16 20H48L44 48H20L16 20Z" stroke="#FF6B00" stroke-width="3" stroke-linejoin="round" fill="rgba(255, 107, 0, 0.1)"/>
+  <!-- Thermal Core Lines -->
+  <path d="M24 34C26 28 30 26 32 24C34 26 38 28 40 34C39 40 35 44 32 44C29 44 25 40 24 34Z" fill="#FF6B00"/>
+  <circle cx="32" cy="34" r="3" fill="#FFFFFF"/>
+</svg>
