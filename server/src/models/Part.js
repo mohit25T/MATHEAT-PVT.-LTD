@@ -7,7 +7,7 @@ const partSchema = new mongoose.Schema({
   customer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Customer',
-    required: true
+    required: false
   },
   drawingNumber: { type: String },
   revision: { type: String, default: 'R0' },
@@ -60,12 +60,39 @@ const partSchema = new mongoose.Schema({
     s: { max: Number },
     p: { max: Number }
   },
+  componentType: { type: String, default: 'Machined Component' },
+  surfaceAreaSqMm: { type: Number },
+  criticalDimensions: { type: String },
+  existingHardness: { type: String },
+  requiredQuantity: { type: Number, default: 0 },
+  customerSpecification: { type: String },
+  approvedProcessSpecification: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProcessMaster'
+  },
+  activeRevision: { type: String, default: 'R0' },
+  attachments: [{
+    name: { type: String, required: true },
+    fileUrl: { type: String, required: true },
+    fileType: { type: String, default: 'PDF' },
+    uploadedAt: { type: Date, default: Date.now }
+  }],
   specialInstructions: { type: String },
   unitRatePerKg: { type: Number, default: 28 }, // ₹/kg
   unitRatePerPiece: { type: Number, default: 12 }, // ₹/pc
   isActive: { type: Boolean, default: true }
 }, {
   timestamps: true
+});
+
+partSchema.pre('save', function(next) {
+  if (!this.drawingNumber && this.partNumber) {
+    this.drawingNumber = `DWG-${this.partNumber}`;
+  }
+  if (!this.description && this.partName) {
+    this.description = this.partName;
+  }
+  next();
 });
 
 export const Part = mongoose.model('Part', partSchema);

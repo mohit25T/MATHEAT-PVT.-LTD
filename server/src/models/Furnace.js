@@ -19,8 +19,14 @@ const furnaceSchema = new mongoose.Schema({
     max: { type: Number, default: 950 }
   },
   heatingType: { type: String, default: 'Electric Radiant Tubes (120 kW)' },
-  quenchMedium: { type: String, enum: ['OIL', 'WATER', 'POLYMER', 'AIR', 'NONE'], default: 'OIL' },
+  atmosphereCapability: { type: String, default: 'Endo Gas + LPG / Nitrogen' },
+  quenchTank: {
+    quenchMedium: { type: String, default: 'OIL', uppercase: true },
+    capacityLiters: { type: Number, default: 4500 }
+  },
+  quenchMedium: { type: String, default: 'OIL', uppercase: true },
   quenchTankCapacityLiters: { type: Number, default: 4500 },
+  temperingFurnace: { type: String, default: 'F-03' },
 
   // Real-time Factory Floor State
   currentStatus: {

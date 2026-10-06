@@ -6,7 +6,7 @@ const recipeSchema = new mongoose.Schema({
   process: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ProcessMaster',
-    required: true
+    required: false
   },
   part: {
     type: mongoose.Schema.Types.ObjectId,
@@ -27,16 +27,23 @@ const recipeSchema = new mongoose.Schema({
   carbonPotentialTolerance: { type: Number, default: 0.05 },
   
   // Quenching
-  quenchMedium: { type: String, enum: ['OIL', 'WATER', 'POLYMER', 'AIR', 'NONE'], default: 'OIL' },
+  quenchMedium: { type: String, default: 'OIL', uppercase: true },
   quenchOilType: { type: String, default: 'Fast Quench Oil (ISO 32)' },
   targetQuenchTemperature: { type: Number, default: 65 }, // °C
   quenchTimeMinutes: { type: Number, default: 15 },
+  transferTimeSeconds: { type: Number, default: 15 }, // Max door-to-quench transfer time
   
   // Tempering
   temperingTemperature: { type: Number, required: true }, // e.g. 180 °C
   temperingTempTolerance: { type: Number, default: 5 },
   temperingTimeMinutes: { type: Number, required: true }, // e.g. 120 min
   coolingMethod: { type: String, default: 'Still Air Cool to Room Temp' },
+  
+  // Required Metallurgy
+  requiredHardness: { type: String, default: '58-62 HRC' },
+  requiredCaseDepth: { type: String, default: '0.80 - 1.10 mm' },
+  requiredCoreHardness: { type: String, default: '32-40 HRC' },
+  distortionLimits: { type: String, default: 'Max 0.05 mm' },
   
   specialInstructions: { type: String },
   revisionReason: { type: String },
