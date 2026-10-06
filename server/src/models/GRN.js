@@ -11,15 +11,35 @@ const grnSchema = new mongoose.Schema({
   },
   customer: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Customer',
-    required: function() { return this.ownership === STOCK_OWNERSHIP.CUSTOMER; }
+    ref: 'Customer'
+  },
+  customerName: {
+    type: String,
+    trim: true
+  },
+  jobOrder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'JobOrder'
   },
   supplier: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Supplier',
-    required: function() { return this.ownership === STOCK_OWNERSHIP.COMPANY; }
+    ref: 'Supplier'
+  },
+  supplierName: {
+    type: String,
+    trim: true
   },
   challanNumber: { type: String, required: true }, // Customer Delivery Challan / Supplier DC
+  challanDate: { type: Date, default: Date.now },
+  transporter: { type: String },
+  packageCount: { type: Number, default: 1 },
+  materialCondition: {
+    type: String,
+    enum: ['GOOD', 'DAMAGED', 'SHORT', 'EXCESS', 'RUSTED', 'MIXED', 'UNKNOWN'],
+    default: 'GOOD'
+  },
+  attachedChallan: { type: String },
+  receivedBy: { type: String },
   poNumber: { type: String }, // Customer PO or Purchase PO
   part: {
     type: mongoose.Schema.Types.ObjectId,
