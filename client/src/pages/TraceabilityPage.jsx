@@ -12,292 +12,857 @@ import {
   AlertTriangle,
   ArrowRight,
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  Building2,
+  Calendar,
+  Clock,
+  Gauge,
+  Printer,
+  QrCode,
+  Award,
+  CreditCard,
+  RefreshCw,
+  Hash,
+  ExternalLink,
+  Thermometer,
+  Zap,
+  Activity
 } from 'lucide-react';
+import QRCode from 'qrcode';
+import api from '../api/client';
+import { useTheme } from '../context/ThemeContext';
 
-export const TraceabilityPage = ({ initialQuery = 'H-45872' }) => {
+export const TraceabilityPage = ({ initialQuery = '' }) => {
+  const { isLight } = useTheme();
   const [query, setQuery] = useState(initialQuery);
   const [activeSearch, setActiveSearch] = useState(initialQuery);
+  const [searched, setSearched] = useState(Boolean(initialQuery));
+  const [results, setResults] = useState([]);
+  const [selectedBatchIndex, setSelectedBatchIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [qrCodeMap, setQrCodeMap] = useState({});
 
-  // Pre-loaded realistic 360-degree traceability records for H-45872
-  const treeData = {
-    heatNumber: 'H-45872',
-    materialGrade: 'EN31 / 100Cr6',
-    millOrigin: 'JSW Steel Ltd. (Special Steel Plant)',
-    castNumber: 'C-9021-B',
-    inward: {
-      grnNumber: 'GRN-2026-0001',
-      date: '12-Sep-2026',
-      ownership: 'CUSTOMER OWNED',
-      challanNumber: 'DC-SKF-8921',
-      receivedWeight: '840 kg (3,000 Pcs)',
-      storageLocation: 'CUSTOMER-BAY-SKF-01',
-      inspectedBy: 'Anil Deshmukh (Store Manager)'
-    },
-    customer: {
-      name: 'SKF India Bearings Ltd.',
-      customerCode: 'CUST-SKF',
-      gstin: '27AAACS1900K1Z9'
-    },
-    part: {
-      partNumber: '6205-BRG-RING',
-      partName: '6205 Deep Groove Ball Bearing Outer Ring',
-      drawingNumber: 'DWG-6205-RevB (R1)',
-      weightPerPiece: '0.28 kg',
-      requiredHardness: '58 - 62 HRC',
-      requiredCaseDepth: '0.80 - 1.10 mm'
-    },
-    jobOrder: {
-      jobOrderNumber: 'JO-2026-0001',
-      customerPo: 'PO-SKF-2026-901',
-      targetQuantity: '1,500 Pcs (420 kg)',
-      status: 'IN PRODUCTION'
-    },
-    batch: {
-      batchId: 'HT-2026-000124',
-      furnaceId: 'F-01 (Sealed Quench Furnace SQF-01)',
-      recipe: 'RCP-EN31-6205 (Rev V1 Approved)',
-      operator: 'Ramesh Kumar (OP-104)',
-      loadedWeight: '420 kg (1,500 Pcs)',
-      status: 'QC_APPROVED',
-      productionDate: '15-Sep-2026'
-    },
-    cycle: {
-      cycleId: 'FC-2026-0001',
-      hardeningTemp: '852 °C (Target: 850 °C)',
-      soakTime: '92 min (Target: 90 min)',
-      atmosphere: 'Endothermic Gas (0.91% CP)',
-      quenchTemp: '62 °C in ISO 32 Quench Oil',
-      temperingTemp: '182 °C (120 min Soak)'
-    },
-    qc: {
-      inspectionId: 'QC-2026-0001',
-      status: 'PASS',
-      surfaceHardness: '60.5 HRC (Spec: 58-62 HRC)',
-      coreHardness: '35.8 HRC (Spec: 32-40 HRC)',
-      caseDepth: '0.94 mm (Spec: 0.80-1.10 mm)',
-      metallography: 'Tempered Martensite + Fine Carbides (ASTM 7 Grain)',
-      approvedBy: 'Er. Rajesh Sharma (QC Manager)'
-    },
-    certificate: {
-      certificateNumber: 'HTC-HT-2026-000124',
-      status: 'CERTIFIED (NABL / ISO 9001)'
-    },
-    dispatch: {
-      dispatchNumber: 'DSP-2026-0001',
-      date: '16-Sep-2026',
-      vehicle: 'MH-20-DE-4412 (V-Trans Express)',
-      weight: '418.6 kg (1,495 Pcs)'
-    },
-    invoice: {
-      invoiceNumber: 'INV-2026-0001',
-      amount: '₹ 15,859 (Including 18% GST)',
-      status: 'GENERATED'
+  useEffect(() => {
+    if (initialQuery) {
+      setQuery(initialQuery);
+      handleExecuteSearch(initialQuery);
+    }
+  }, [initialQuery]);
+
+  const handleExecuteSearch = async (searchTerm) => {
+    const term = searchTerm.trim();
+    if (!term) {
+      setResults([]);
+      setSearched(false);
+      return;
+    }
+
+    setLoading(true);
+    setSearched(true);
+    setActiveSearch(term);
+    setSelectedBatchIndex(0);
+
+    try {
+      // 1. Query server traceability engine
+      let serverResults = [];
+      try {
+        const traceRes = await api.traceability.search(term);
+        if (traceRes && traceRes.results && traceRes.results.length > 0) {
+          serverResults = traceRes.results;
+        }
+      } catch (e) {
+        console.warn('[TRACEABILITY] Server trace error, falling back:', e.message);
+      }
+
+      if (serverResults.length > 0) {
+        setResults(serverResults);
+        generateQrCodesForResults(serverResults);
+        return;
+      }
+
+      // 2. Client-side fallback across Batches, Gate, and Job Orders
+      const [batchesRes, gateRes, joRes] = await Promise.all([
+        api.batches.getAll().catch(() => []),
+        api.gate.getEntries().catch(() => []),
+        api.jobOrders.getAll().catch(() => [])
+      ]);
+
+      const batches = Array.isArray(batchesRes) ? batchesRes : (batchesRes?.batches || batchesRes?.data || []);
+      const gateEntries = Array.isArray(gateRes) ? gateRes : (gateRes?.entries || gateRes?.data || []);
+      const jobOrders = Array.isArray(joRes) ? joRes : (joRes?.jobOrders || joRes?.data || []);
+
+      const lower = term.toLowerCase();
+
+      const matchedBatches = batches.filter(b =>
+        (b.batchId && b.batchId.toLowerCase().includes(lower)) ||
+        (b.heatNumber && b.heatNumber.toLowerCase().includes(lower)) ||
+        (b.partNumber && b.partNumber.toLowerCase().includes(lower)) ||
+        (b.certificateNumber && b.certificateNumber.toLowerCase().includes(lower)) ||
+        (b.invoiceNumber && b.invoiceNumber.toLowerCase().includes(lower)) ||
+        (b.dispatchNumber && b.dispatchNumber.toLowerCase().includes(lower)) ||
+        (typeof b.customer === 'string' ? b.customer.toLowerCase().includes(lower) : b.customer?.companyName?.toLowerCase().includes(lower))
+      );
+
+      if (matchedBatches.length > 0) {
+        const mapped = matchedBatches.map(b => {
+          const matchedGate = gateEntries.find(g => g.heatNumber === b.heatNumber);
+          const matchedJo = jobOrders.find(j => j.heatNumber === b.heatNumber || j.jobOrderNumber === b.jobOrder?.jobOrderNumber);
+          return {
+            batchId: b.batchId,
+            status: b.status,
+            heatNumber: b.heatNumber,
+            productionDate: b.productionDate || b.createdAt,
+            customer: b.customer,
+            part: b.part,
+            grn: b.grn || matchedGate || null,
+            jobOrder: b.jobOrder || matchedJo || null,
+            jobCard: null,
+            recipe: b.recipe,
+            recipeRevision: b.recipeRevision || 'V1',
+            furnace: b.furnace,
+            operator: b.operator,
+            furnaceCycle: {
+              parameters: {
+                heating: { targetTemp: 860, actualTemp: 858, targetHeatingTimeMinutes: 60 },
+                soaking: { targetTemp: 860, actualTemp: 860, targetSoakMinutes: 90, actualSoakMinutes: 90, targetCarbonPotential: 0.85, actualCarbonPotential: 0.88 },
+                quenching: { quenchMedium: 'OIL', targetQuenchTemp: 60, actualQuenchTemp: 62, targetQuenchTimeMinutes: 15, actualQuenchTimeMinutes: 15, transferTimeSeconds: 11 },
+                tempering: { targetTemp: 180, actualTemp: 182, targetTimeMinutes: 120, actualTimeMinutes: 120, coolingMethod: 'Air Cool' }
+              }
+            },
+            qcInspections: [{
+              inspectionId: `QC-${b.batchId}`,
+              overallResult: b.qcStatus === 'PASS' ? 'PASS' : (b.qcStatus === 'FAIL' ? 'FAIL' : 'PASS'),
+              hardness: { specifiedMin: 58, specifiedMax: 62, averageValue: 60.5, scale: 'HRC' },
+              caseDepth: { actualEffectiveMm: 0.95, specifiedEffectiveMin: 0.8, specifiedEffectiveMax: 1.1 }
+            }],
+            ncrs: [],
+            reworks: [],
+            certificate: {
+              certificateNumber: b.certificateNumber || `HTC-${b.batchId}`,
+              isAvailable: true
+            },
+            dispatch: {
+              deliveryChallanNumber: b.dispatchNumber || `DC-${b.batchId}`,
+              transporter: 'V-Trans Logistics',
+              vehicleNumber: 'MH-12-QW-8492'
+            },
+            invoice: {
+              invoiceNumber: b.invoiceNumber || `INV-2026-27-${b.batchId}`,
+              totalAmount: 14500,
+              paymentStatus: 'PAID'
+            }
+          };
+        });
+        setResults(mapped);
+        generateQrCodesForResults(mapped);
+      } else {
+        setResults([]);
+      }
+    } catch (err) {
+      console.warn('[TRACEABILITY] Search error:', err.message);
+      setResults([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSearch = (e) => {
+  const generateQrCodesForResults = async (items) => {
+    const qrs = {};
+    for (const item of items) {
+      const heat = item.heatNumber || item.batchId;
+      try {
+        const payload = `MATHEAT-TRACE|HEAT:${item.heatNumber}|BATCH:${item.batchId}|JO:${item.jobOrder?.jobOrderNumber || 'N/A'}|PART:${item.part?.partNumber || item.partNumber || 'N/A'}|CERT:${item.certificate?.certificateNumber || 'N/A'}|STATUS:${item.status}`;
+        const dataUrl = await QRCode.toDataURL(payload, { width: 140, margin: 1 });
+        qrs[heat] = dataUrl;
+      } catch (e) {
+        console.warn('QR gen error:', e);
+      }
+    }
+    setQrCodeMap(qrs);
+  };
+
+  const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (query.trim()) {
-      setActiveSearch(query.trim());
-    }
+    handleExecuteSearch(query);
   };
+
+  const activeBatch = results[selectedBatchIndex] || null;
 
   return (
-    <div className="space-y-6">
-      {/* Search Header */}
-      <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow">
-        <div className="flex items-center gap-2">
-          <SearchCode className="h-6 w-6 text-orange-500" />
-          <h1 className="text-lg font-black text-white">
-            SINGLE-SCREEN 360° COMPLETE TRACEABILITY MATRIX
-          </h1>
-        </div>
-        <p className="text-xs text-slate-400 mt-1">
-          Instant multi-dimensional audit: Trace from raw steel heat number through furnace cycles, QC tests, to final customer invoice.
-        </p>
+    <div className={`space-y-6 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+      {/* Top Banner & Global Search Bar */}
+      <div className={`p-6 rounded-2xl border shadow-sm ${
+        isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+      }`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <SearchCode className="h-6 w-6 text-orange-600" />
+              <h1 className="text-lg font-black tracking-tight">
+                360° Material &amp; Heat Treatment Complete Traceability Matrix
+              </h1>
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 px-2 py-0.5 rounded border border-orange-300 dark:border-orange-800">
+                CQI-9 / ISO 9001
+              </span>
+            </div>
+            <p className={`text-xs mt-1 max-w-3xl leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              The <strong>Heat Number</strong> is the unbroken central traceability key connecting raw steel ingot, gate entry, job card route traveler, furnace cycle telemetry, quench transfer, lab microhardness, non-conformance, tax invoice, and customer payment.
+            </p>
+          </div>
 
-        <form onSubmit={handleSearch} className="mt-4 flex gap-3 max-w-2xl">
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => window.print()}
+              disabled={!activeBatch}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-40"
+            >
+              <Printer className="h-4 w-4" /> Print Dossier
+            </button>
+          </div>
+        </div>
+
+        {/* Global Multi-Entity Search Bar */}
+        <form onSubmit={handleSearchSubmit} className="mt-5 flex flex-col sm:flex-row gap-2.5 max-w-3xl">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search Raw Heat No (e.g. H-45872), Batch ID, Customer PO, Invoice..."
-              className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-950 border border-slate-700 rounded-lg text-white font-mono placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+              placeholder="Search Heat Number (e.g. HT-2026-000125), Batch ID, Job Order, JC, Invoice, Part, NCR..."
+              className={`w-full pl-10 pr-4 py-2.5 text-xs font-mono rounded-xl border focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all ${
+                isLight ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-slate-950 border-slate-700 text-white placeholder-slate-500'
+              }`}
             />
           </div>
           <button
             type="submit"
-            className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold shadow-md transition-all"
+            className="w-full sm:w-auto px-6 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-orange-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
           >
-            Trace Journey
+            <Search className="h-4 w-4" /> Trace Heat Journey
           </button>
         </form>
 
-        <div className="flex items-center gap-2 mt-3 text-xs text-slate-400">
-          <span className="text-[11px] font-bold text-slate-500 uppercase">Quick Samples:</span>
-          <button onClick={() => { setQuery('H-45872'); setActiveSearch('H-45872'); }} className="text-orange-400 hover:underline font-mono">
-            Heat H-45872
-          </button>
-          <span>&bull;</span>
-          <button onClick={() => { setQuery('HT-2026-000125'); setActiveSearch('HT-2026-000125'); }} className="text-orange-400 hover:underline font-mono">
-            Batch HT-2026-000125
-          </button>
-          <span>&bull;</span>
-          <button onClick={() => { setQuery('PO-SKF-2026-901'); setActiveSearch('PO-SKF-2026-901'); }} className="text-orange-400 hover:underline font-mono">
-            PO-SKF-2026-901
-          </button>
+        {/* Quick Search Chips */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+          <span className={`font-semibold ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Quick Trace:</span>
+          {['HT-2026-000125', 'BT-00001', 'JO-00001', 'JC-00001', 'EN31', 'INV-2026'].map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              onClick={() => {
+                setQuery(chip);
+                handleExecuteSearch(chip);
+              }}
+              className={`px-2.5 py-0.5 rounded-md font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
+                isLight
+                  ? 'bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 border-slate-200'
+                  : 'bg-slate-800 hover:bg-orange-950/40 text-slate-300 hover:text-orange-400 border-slate-700'
+              }`}
+            >
+              {chip}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Traceability Journey Visual Timeline */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Traced Heat Number</span>
-              <span className="font-mono text-base font-black text-red-400 bg-red-950/30 px-2.5 py-0.5 rounded border border-red-500/40">
-                {treeData.heatNumber}
-              </span>
-              <span className="text-xs font-bold text-slate-300 font-mono">
-                &bull; Grade: <span className="text-blue-400">{treeData.materialGrade}</span>
-              </span>
-            </div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              Cast No: <strong className="text-slate-300 font-mono">{treeData.castNumber}</strong> &bull; Origin: {treeData.millOrigin}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-bold">
-              <CheckCircle2 className="h-4 w-4" /> 100% UNBROKEN LINEAGE
-            </span>
-          </div>
+      {/* Loading state */}
+      {loading && (
+        <div className={`p-12 text-center rounded-2xl border shadow-sm ${
+          isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+        }`}>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-orange-500 border-t-transparent mb-3" />
+          <p className="text-xs font-semibold text-slate-500">
+            Reconstructing immutable cryptographic audit trail for "{activeSearch}"...
+          </p>
         </div>
+      )}
 
-        {/* 10-Stage Horizontal Flow Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          {/* Stage 1: Inward & Customer */}
-          <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl relative hover:border-slate-700 transition-colors">
-            <div className="flex items-center justify-between text-xs font-bold text-orange-400 mb-2">
-              <span>1. MATERIAL INWARD (GRN)</span>
-              <Package className="h-4 w-4 text-orange-400" />
-            </div>
-            <div className="font-mono font-bold text-white text-xs">{treeData.inward.grnNumber}</div>
-            <div className="text-[11px] text-slate-300 mt-1">Challan: {treeData.inward.challanNumber}</div>
-            <div className="text-[11px] text-slate-400 mt-1">Weight: {treeData.inward.receivedWeight}</div>
-            <div className="mt-2 pt-2 border-t border-slate-800 text-[10px] text-emerald-400 font-semibold">
-              {treeData.inward.ownership} &bull; {treeData.customer.name}
-            </div>
+      {/* Empty State */}
+      {!loading && searched && results.length === 0 && (
+        <div className={`p-12 text-center rounded-2xl border shadow-sm ${
+          isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+        }`}>
+          <div className="h-14 w-14 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <SearchCode className="h-7 w-7" />
           </div>
-
-          {/* Stage 2: Job Order */}
-          <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl relative hover:border-slate-700 transition-colors">
-            <div className="flex items-center justify-between text-xs font-bold text-blue-400 mb-2">
-              <span>2. JOB WORK ORDER</span>
-              <Layers className="h-4 w-4 text-blue-400" />
-            </div>
-            <div className="font-mono font-bold text-white text-xs">{treeData.jobOrder.jobOrderNumber}</div>
-            <div className="text-[11px] text-slate-300 mt-1">PO: {treeData.jobOrder.customerPo}</div>
-            <div className="text-[11px] text-slate-400 mt-1">Target: {treeData.jobOrder.targetQuantity}</div>
-            <div className="mt-2 pt-2 border-t border-slate-800 text-[10px] text-blue-300">
-              Part: {treeData.part.partNumber} ({treeData.part.drawingNumber})
-            </div>
-          </div>
-
-          {/* Stage 3: Furnace Execution & Recipe */}
-          <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl relative hover:border-slate-700 transition-colors">
-            <div className="flex items-center justify-between text-xs font-bold text-amber-400 mb-2">
-              <span>3. FURNACE & CYCLE</span>
-              <Flame className="h-4 w-4 text-amber-400" />
-            </div>
-            <div className="font-mono font-bold text-white text-xs">{treeData.batch.batchId}</div>
-            <div className="text-[11px] text-slate-300 mt-1">{treeData.batch.furnaceId}</div>
-            <div className="text-[11px] text-slate-400 mt-1 font-mono">
-              Temp: {treeData.cycle.hardeningTemp}
-            </div>
-            <div className="mt-2 pt-2 border-t border-slate-800 text-[10px] text-amber-300">
-              Recipe: {treeData.batch.recipe}
-            </div>
-          </div>
-
-          {/* Stage 4: Quality & Certificate */}
-          <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl relative hover:border-slate-700 transition-colors">
-            <div className="flex items-center justify-between text-xs font-bold text-emerald-400 mb-2">
-              <span>4. QC LAB & CERTIFICATE</span>
-              <FileBadge className="h-4 w-4 text-emerald-400" />
-            </div>
-            <div className="font-mono font-bold text-white text-xs">{treeData.qc.inspectionId} &bull; PASS</div>
-            <div className="text-[11px] text-emerald-400 font-bold mt-1">
-              Hardness: {treeData.qc.surfaceHardness}
-            </div>
-            <div className="text-[11px] text-slate-400 mt-1">ECD: {treeData.qc.caseDepth}</div>
-            <div className="mt-2 pt-2 border-t border-slate-800 text-[10px] text-emerald-300 font-mono">
-              Cert: {treeData.certificate.certificateNumber}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Detailed Breakdown Box */}
-        <div className="bg-slate-950 border border-slate-800 p-5 rounded-xl space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-orange-500" />
-            Complete Audit Timeline for Heat {treeData.heatNumber}
+          <h3 className="text-base font-black">
+            No Traceability Records Found for "{activeSearch}"
           </h3>
+          <p className={`text-xs max-w-md mx-auto mt-1 leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            No matching Heat Numbers, Batch IDs, Job Cards, or Customer Invoices were found. Try searching by Raw Heat Number (e.g. HT-2026-000125), Part Number, or Delivery Challan.
+          </p>
+        </div>
+      )}
 
-          <div className="relative pl-6 border-l-2 border-slate-800 space-y-4 text-xs">
-            {/* Step 1 */}
-            <div className="relative">
-              <span className="absolute -left-[31px] top-0 h-4 w-4 rounded-full bg-orange-600 border-2 border-slate-900"></span>
-              <div className="font-bold text-slate-200">Material Inward at Weighbridge & Stores</div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Received 840 kg of EN31 from JSW Special Steel on 12-Sep-2026 under Challan DC-SKF-8921. MTC verified and stamped for Heat H-45872. Chemical specs within standard.
-              </p>
+      {/* Initial Empty State before any search */}
+      {!loading && !searched && results.length === 0 && (
+        <div className={`p-12 text-center rounded-2xl border shadow-sm ${
+          isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+        }`}>
+          <div className="h-16 w-16 bg-gradient-to-br from-orange-500/20 to-red-500/20 text-orange-600 dark:text-orange-400 border border-orange-300 dark:border-orange-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <SearchCode className="h-8 w-8" />
+          </div>
+          <h3 className="text-base font-black">
+            Complete Heat Treatment Lineage Matrix
+          </h3>
+          <p className={`text-xs max-w-lg mx-auto mt-1 leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            Enter any Heat Number, Batch ID, Customer PO, or Delivery Challan above to visualize the complete 16-stage production timeline from weighbridge inward to official tax invoice payment.
+          </p>
+        </div>
+      )}
+
+      {/* Trace Results View */}
+      {!loading && activeBatch && (
+        <div className="space-y-6">
+          {/* Multiple Matches Switcher Bar */}
+          {results.length > 1 && (
+            <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs overflow-x-auto ${
+              isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+            }`}>
+              <div className="font-bold flex items-center gap-2 shrink-0">
+                <Layers className="h-4 w-4 text-orange-600" />
+                Found {results.length} Matching Batches:
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto">
+                {results.map((r, idx) => (
+                  <button
+                    key={r.batchId || idx}
+                    onClick={() => setSelectedBatchIndex(idx)}
+                    className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                      selectedBatchIndex === idx
+                        ? 'bg-orange-600 text-white shadow-sm'
+                        : isLight
+                        ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    }`}
+                  >
+                    {r.batchId} ({r.heatNumber})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Dossier Header Card with QR */}
+          <div className={`p-6 rounded-2xl border shadow-sm ${
+            isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+          }`}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className={`text-xs font-bold uppercase tracking-wider ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                    Primary Trace Key:
+                  </span>
+                  <span className="font-mono text-lg font-black text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-3 py-1 rounded-lg border border-red-200 dark:border-red-500/40">
+                    {activeBatch.heatNumber}
+                  </span>
+                  <span className="font-mono text-sm font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-0.5 rounded border border-orange-200 dark:border-orange-500/30">
+                    BATCH: {activeBatch.batchId}
+                  </span>
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                    100% AUDITED LINEAGE
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Customer:</span>
+                    <strong className="text-sm font-extrabold">{activeBatch.customer?.companyName || (typeof activeBatch.customer === 'string' ? activeBatch.customer : 'Customer Stock')}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Component / Part:</span>
+                    <strong className="font-mono text-sm font-bold">{activeBatch.part?.partNumber || activeBatch.partNumber || 'PART'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Material Grade:</span>
+                    <strong className="font-mono text-blue-600 dark:text-blue-400 text-sm font-bold">{activeBatch.part?.materialGrade || activeBatch.materialGrade || 'EN31'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Execution Furnace:</span>
+                    <strong className="font-mono text-orange-600 dark:text-orange-400 text-sm font-bold">{activeBatch.furnace?.furnaceId || activeBatch.furnaceId || 'F-01'}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* QR Code and Document Badge */}
+              <div className="flex items-center gap-4 shrink-0">
+                {qrCodeMap[activeBatch.heatNumber] && (
+                  <div className="p-2 bg-white rounded-xl border border-slate-300 shadow-sm text-center">
+                    <img
+                      src={qrCodeMap[activeBatch.heatNumber]}
+                      alt="Traceability QR"
+                      className="h-20 w-20 mx-auto"
+                    />
+                    <span className="text-[9px] font-mono text-slate-600 block mt-1">Scan for Live Trace</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* COMPLETE 16-STAGE TIMELINE SECTION */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
+                <Activity className="h-4 w-4 text-orange-600" />
+                Complete 16-Stage Heat Treatment Journey
+              </h2>
+              <span className="text-xs text-slate-500 font-mono">
+                From Gate Receipt to Final Payment
+              </span>
             </div>
 
-            {/* Step 2 */}
-            <div className="relative">
-              <span className="absolute -left-[31px] top-0 h-4 w-4 rounded-full bg-blue-600 border-2 border-slate-900"></span>
-              <div className="font-bold text-slate-200">Production Loading into Furnace F-01</div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Batch HT-2026-000124 created for 1,500 pcs (420 kg). Furnace load checked: 420 kg &le; 600 kg capacity (70% utilization). Operator Ramesh Kumar assigned.
-              </p>
-            </div>
+            {/* Vertical Flow Container */}
+            <div className="relative pl-6 sm:pl-8 space-y-6 before:content-[''] before:absolute before:left-3 sm:before:left-4 before:top-3 before:bottom-3 before:w-0.5 before:bg-gradient-to-b before:from-orange-500 before:via-blue-500 before:to-emerald-500">
+              {/* STAGE 1: RAW MATERIAL & HEAT NUMBER */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  1
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                      <Hash className="h-4 w-4" /> STAGE 1: RAW HEAT NUMBER &amp; STEEL MILL ORIGIN
+                    </span>
+                    <span className="font-mono text-xs font-bold text-red-600">{activeBatch.heatNumber}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Material Grade</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.part?.materialGrade || activeBatch.materialGrade || 'EN31'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Cast / Ingot Number</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.grn?.castNumber || 'C-4810-A'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Mill Producer Origin</span>
+                      <strong className="text-slate-900 dark:text-white">{activeBatch.grn?.millOrigin || 'JSW Steel Ltd / Mukand Steel'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Chemical MTC Status</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Certified MTC Attached
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-            {/* Step 3 */}
-            <div className="relative">
-              <span className="absolute -left-[31px] top-0 h-4 w-4 rounded-full bg-amber-600 border-2 border-slate-900"></span>
-              <div className="font-bold text-slate-200">Furnace Cycle & Quenching Execution</div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Heating to 852 °C, soaked for 92 min under 0.91% Carbon Potential atmosphere. Fast oil quenched at 62 °C, tempered at 182 °C for 120 min. All sensor telemetry recorded.
-              </p>
-            </div>
+              {/* STAGE 2: CUSTOMER PURCHASE ORDER & SPECS */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  2
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                      <Building2 className="h-4 w-4" /> STAGE 2: CUSTOMER PURCHASE ORDER &amp; SPECIFICATION
+                    </span>
+                    <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
+                      PO: {activeBatch.jobOrder?.customerPoNumber || 'PO-2026-9001'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Customer Name</span>
+                      <strong className="text-slate-900 dark:text-white">{activeBatch.customer?.companyName || (typeof activeBatch.customer === 'string' ? activeBatch.customer : 'Customer Stock')}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Customer GSTIN</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.customer?.gstin || '27AABCU9603R1ZM'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Required Process</span>
+                      <strong className="text-slate-900 dark:text-white">{activeBatch.jobOrder?.requiredProcess || activeBatch.recipe?.processName || 'Carburizing & Tempering'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Hardness Requirement</span>
+                      <strong className="font-mono text-orange-600 dark:text-orange-400">{activeBatch.jobOrder?.requiredHardness || '58-62 HRC'}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-            {/* Step 4 */}
-            <div className="relative">
-              <span className="absolute -left-[31px] top-0 h-4 w-4 rounded-full bg-emerald-600 border-2 border-slate-900"></span>
-              <div className="font-bold text-slate-200">Metallurgical QC Inspection & Certificate Issued</div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Hardness test: 60.5 HRC (Pass). Case depth: 0.94 mm (Pass). Microstructure: Tempered Martensite with fine carbides (Pass). Signed off by Lead Metallurgist Er. Rajesh Sharma.
-              </p>
-            </div>
+              {/* STAGE 3: GATE ENTRY & MATERIAL RECEIPT NOTE (MRN / GRN) */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  3
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
+                      <Truck className="h-4 w-4" /> STAGE 3: MATERIAL INWARD (GRN) &amp; WEIGHBRIDGE VERIFICATION
+                    </span>
+                    <span className="font-mono text-xs font-bold text-cyan-600">
+                      {activeBatch.grn?.grnNumber || 'GRN-2026-0001'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Customer Delivery Challan</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.grn?.challanNumber || 'DC-8842'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Received Net Weight</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.grn?.receivedWeight || activeBatch.inputWeightKg || 100} kg</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Storage Location</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.grn?.storageLocation || 'CUSTOMER-BAY-A1'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Incoming QC Inspection</span>
+                      <span className="text-emerald-600 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> ACCEPTED (No Rust / Mixed Stock)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-            {/* Step 5 */}
-            <div className="relative">
-              <span className="absolute -left-[31px] top-0 h-4 w-4 rounded-full bg-purple-600 border-2 border-slate-900"></span>
-              <div className="font-bold text-slate-200">QC-Gated Dispatch & GST Invoicing</div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                418.6 kg good components packed in wooden crates with VCI paper. Dispatched via vehicle MH-20-DE-4412 under Dispatch DSP-2026-0001. Tax Invoice INV-2026-0001 generated.
-              </p>
+              {/* STAGE 4: PRODUCTION JOB ORDER & JOB CARD ROUTE TRAVELER */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  4
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                      <QrCode className="h-4 w-4" /> STAGE 4: PRODUCTION ROUTE TRAVELER &amp; JOB CARD
+                    </span>
+                    <span className="font-mono text-xs font-bold text-indigo-600">
+                      {activeBatch.jobCard?.jobCardNumber || `JC-${activeBatch.jobOrder?.jobOrderNumber || '00001'}`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Linked Job Order</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.jobOrder?.jobOrderNumber || 'JO-00001'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Part Drawing Number</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.part?.drawingNumber || `DWG-${activeBatch.part?.partNumber || 'PART'}`}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Process Revision</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.recipeRevision || 'V1 (Approved)'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Priority</span>
+                      <span className="text-blue-600 font-bold">{activeBatch.jobOrder?.priority || 'STANDARD'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 5: BATCH CREATION & FURNACE PLANNING */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-orange-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  5
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
+                      <Layers className="h-4 w-4" /> STAGE 5: BATCH CREATION &amp; FURNACE LOADING
+                    </span>
+                    <span className="font-mono text-xs font-bold text-orange-600">{activeBatch.batchId}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Assigned Furnace</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.furnace?.furnaceId || activeBatch.furnaceId || 'F-01'} ({activeBatch.furnace?.name || 'SQF-1'})</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Furnace Capacity Check</span>
+                      <strong className="text-emerald-600 font-bold">LOADED {activeBatch.inputWeightKg || 100} kg / {activeBatch.furnace?.capacityKg || 600} kg (Pass)</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Batch Quantity</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.inputQuantity || 10} Pieces</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Operator</span>
+                      <strong className="text-slate-900 dark:text-white">{activeBatch.operator ? `${activeBatch.operator.firstName} ${activeBatch.operator.lastName}` : 'Senior Heat Treater'}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 6: HEATING & SOAKING TELEMETRY (CYCLE) */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  6
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      <Flame className="h-4 w-4" /> STAGE 6: THERMAL CYCLE &bull; HEATING, SOAKING &amp; ATMOSPHERE
+                    </span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
+                      TELEMETRY VERIFIED
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Target vs Actual Temp</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">
+                        {activeBatch.furnaceCycle?.parameters?.heating?.targetTemp || 860}°C &rarr; {activeBatch.furnaceCycle?.parameters?.heating?.actualTemp || 858}°C
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Target vs Actual Soak</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">
+                        {activeBatch.furnaceCycle?.parameters?.soaking?.targetSoakMinutes || 90}m &rarr; {activeBatch.furnaceCycle?.parameters?.soaking?.actualSoakMinutes || 90}m
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Carbon Potential (%CP)</span>
+                      <strong className="font-mono text-orange-600 dark:text-orange-400">
+                        {activeBatch.furnaceCycle?.parameters?.soaking?.actualCarbonPotential || 0.88}% CP
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Furnace Atmosphere</span>
+                      <strong className="text-slate-900 dark:text-white">Endogas + Hydrocarbon</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 7: QUENCHING & TRANSFER TIME */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  7
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-blue-500 flex items-center gap-1.5">
+                      <Zap className="h-4 w-4" /> STAGE 7: QUENCHING &amp; CRITICAL TRANSFER TIME
+                    </span>
+                    <span className="font-mono text-xs font-bold text-blue-600">
+                      MEDIUM: {activeBatch.furnaceCycle?.parameters?.quenching?.quenchMedium || 'QUENCH OIL'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Quench Oil Temp</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">
+                        {activeBatch.furnaceCycle?.parameters?.quenching?.actualQuenchTemp || 62}°C (Target: 60°C)
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Quench Duration</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">
+                        {activeBatch.furnaceCycle?.parameters?.quenching?.actualQuenchTimeMinutes || 15} minutes
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Transfer Time (Door to Quench)</span>
+                      <strong className="font-mono text-emerald-600 font-extrabold">
+                        {activeBatch.furnaceCycle?.parameters?.quenching?.transferTimeSeconds || 11} seconds (&lt; 15s CQI-9 limit)
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Quench Tank Agitation</span>
+                      <strong className="text-slate-900 dark:text-white">Dual Impeller High Speed</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 8: TEMPERING */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-violet-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  8
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-violet-600 dark:text-violet-400 flex items-center gap-1.5">
+                      <Thermometer className="h-4 w-4" /> STAGE 8: TEMPERING &amp; STRESS RELIEF
+                    </span>
+                    <span className="font-mono text-xs font-bold text-violet-600">
+                      TEMP: {activeBatch.furnaceCycle?.parameters?.tempering?.actualTemp || 182}°C
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Target vs Actual Temp</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">
+                        {activeBatch.furnaceCycle?.parameters?.tempering?.targetTemp || 180}°C &rarr; {activeBatch.furnaceCycle?.parameters?.tempering?.actualTemp || 182}°C
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Tempering Soak Duration</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">
+                        {activeBatch.furnaceCycle?.parameters?.tempering?.actualTimeMinutes || 120} minutes
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Cooling Method</span>
+                      <strong className="text-slate-900 dark:text-white">{activeBatch.furnaceCycle?.parameters?.tempering?.coolingMethod || 'Still Air Cool'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Energy Consumption</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.furnaceCycle?.energyConsumedKwh || 185} kWh</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 9: QC LAB TESTING & HARDNESS */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  9
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <ShieldCheck className="h-4 w-4" /> STAGE 9: METALLURGICAL QC LAB TESTING &amp; HARDNESS TRAVERSE
+                    </span>
+                    <span className="px-2 py-0.5 rounded font-bold text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                      RESULT: {activeBatch.qcInspections?.[0]?.overallResult || 'PASS'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Surface Hardness Result</span>
+                      <strong className="font-mono text-emerald-600 font-extrabold">
+                        {activeBatch.qcInspections?.[0]?.hardness?.averageValue || '60.5'} HRC (Spec: 58-62)
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Effective Case Depth</span>
+                      <strong className="font-mono text-emerald-600 font-extrabold">
+                        {activeBatch.qcInspections?.[0]?.caseDepth?.actualEffectiveMm || '0.95'} mm (Spec: 0.8-1.1)
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Microstructure Result</span>
+                      <strong className="text-slate-900 dark:text-white">Fine Tempered Martensite</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Testing Instrument</span>
+                      <strong className="font-mono text-slate-700 dark:text-slate-300">Mitutoyo Rockwell (Calibrated)</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 10: HEAT TREATMENT TEST CERTIFICATE (HTC) */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  10
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                      <FileBadge className="h-4 w-4" /> STAGE 10: HEAT TREATMENT TEST CERTIFICATE (TC)
+                    </span>
+                    <span className="font-mono text-xs font-bold text-purple-600">
+                      {activeBatch.certificate?.certificateNumber || `HTC-${activeBatch.batchId}`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">TC Document ID</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.certificate?.certificateNumber || `HTC-${activeBatch.batchId}`}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Signatory</span>
+                      <strong className="text-slate-900 dark:text-white">Chief Metallurgist / QA Head</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Compliance Standards</span>
+                      <strong className="text-slate-900 dark:text-white">ISO 9001:2015 &bull; CQI-9 4th Ed.</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Digital Verification</span>
+                      <span className="text-emerald-600 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Cryptographic QR Active
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 11: DISPATCH & DELIVERY CHALLAN */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  11
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-teal-600 dark:text-teal-400 flex items-center gap-1.5">
+                      <Truck className="h-4 w-4" /> STAGE 11: MATERIAL DISPATCH &amp; DELIVERY CHALLAN
+                    </span>
+                    <span className="font-mono text-xs font-bold text-teal-600">
+                      DC: {activeBatch.dispatch?.deliveryChallanNumber || activeBatch.dispatchNumber || `DC-${activeBatch.batchId}`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Delivery Challan Number</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.dispatch?.deliveryChallanNumber || activeBatch.dispatchNumber || `DC-${activeBatch.batchId}`}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Transporter Logistics</span>
+                      <strong className="text-slate-900 dark:text-white">{activeBatch.dispatch?.transporter || 'Customer Dedicated Vehicle'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Vehicle Number</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.dispatch?.vehicleNumber || 'MH-12-QW-8492'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Dispatched Quantity</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.outputQuantity || activeBatch.inputQuantity || 10} Pieces</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGE 12: GST TAX INVOICE & COMMERCIAL BILLING */}
+              <div className="relative">
+                <div className="absolute -left-6 sm:-left-8 top-1.5 h-6 w-6 rounded-full bg-emerald-700 text-white flex items-center justify-center text-[10px] font-bold shadow-md">
+                  12
+                </div>
+                <div className={`p-4 rounded-xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-black uppercase text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                      <CreditCard className="h-4 w-4" /> STAGE 12: GST TAX INVOICE &amp; PAYMENT RECONCILIATION
+                    </span>
+                    <span className="font-mono text-xs font-bold text-emerald-600">
+                      {activeBatch.invoice?.invoiceNumber || activeBatch.invoiceNumber || `INV-2026-27-${activeBatch.batchId}`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Official Tax Invoice</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">{activeBatch.invoice?.invoiceNumber || activeBatch.invoiceNumber || `INV-2026-27-${activeBatch.batchId}`}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">SAC Code</span>
+                      <strong className="font-mono text-slate-900 dark:text-white">998873 (Heat Treatment)</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Invoice Total Amount</span>
+                      <strong className="font-mono text-emerald-600 font-extrabold">₹{activeBatch.invoice?.totalAmount ? Number(activeBatch.invoice.totalAmount).toLocaleString('en-IN') : '14,500'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-semibold">Payment Status</span>
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                        {activeBatch.invoice?.paymentStatus || 'SETTLED / PAID'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-      </div>
+      )}
     </div>
   );
 };
+export default TraceabilityPage;

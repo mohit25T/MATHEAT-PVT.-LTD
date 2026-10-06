@@ -23,6 +23,17 @@ import maintenanceRoutes from './routes/maintenanceRoutes.js';
 import traceabilityRoutes from './routes/traceabilityRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 import gateRoutes from './routes/gateRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import gstRoutes from './routes/gstRoutes.js';
+import furnaceRoutes from './routes/furnaceRoutes.js';
+import purchaseRoutes from './routes/purchaseRoutes.js';
+import dropdownRoutes from './routes/dropdownRoutes.js';
+import salesRoutes from './routes/salesRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import instrumentRoutes from './routes/instrumentRoutes.js';
+import reworkRoutes from './routes/reworkRoutes.js';
+import jobCardRoutes from './routes/jobCardRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 dotenv.config();
 
@@ -65,6 +76,17 @@ app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/traceability', traceabilityRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/gate', gateRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/gst', gstRoutes);
+app.use('/api/furnaces', furnaceRoutes);
+app.use('/api/purchase', purchaseRoutes);
+app.use('/api/dropdowns', dropdownRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/instruments', instrumentRoutes);
+app.use('/api/rework', reworkRoutes);
+app.use('/api/job-cards', jobCardRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health Check Endpoint (returns DB name and status)
 app.get('/api/health', (req, res) => {
@@ -89,18 +111,52 @@ const startServer = async () => {
     await connectDB();
     await seedDatabase();
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
       console.log(`====================================================`);
       console.log(`🔥 MATHEAT Heat Treatment ERP + MES Server Running`);
-      console.log(`🚀 Port: ${PORT}`);
+      console.log(`🚀 Port: ${PORT} (Bound to 0.0.0.0 for LAN Network Access)`);
       console.log(`🗄️ Database Connected: ${mongoose.connection.name || 'MATHEAT'}`);
       console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`====================================================`);
     });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`⚠️ Port ${PORT} is temporarily busy. Retrying in 1.5s...`);
+        setTimeout(() => {
+          server.close();
+          server.listen(PORT, '0.0.0.0');
+        }, 1500);
+      } else {
+        console.error(`Fatal Server Listen Error:`, err);
+      }
+    });
+
+    const gracefulShutdown = () => {
+      server.close(() => {
+        process.kill(process.pid, 'SIGUSR2');
+      });
+    };
+
+    process.once('SIGUSR2', gracefulShutdown);
+    process.on('SIGINT', () => server.close(() => process.exit(0)));
+    process.on('SIGTERM', () => server.close(() => process.exit(0)));
+    return server;
   } catch (err) {
     console.error(`Fatal Server Startup Error:`, err);
     process.exit(1);
   }
 };
 
-startServer();
+const isDirectRun = process.argv[1] && (
+  process.argv[1].endsWith('server.js') || 
+  process.argv[1].endsWith('server')
+);
+
+if (isDirectRun && process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+export { app, startServer };
+export default app;

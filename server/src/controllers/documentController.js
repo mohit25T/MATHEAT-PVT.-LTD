@@ -148,3 +148,36 @@ export const getInvoice = async (req, res, next) => {
     next(error);
   }
 };
+
+export const verifyCertificate = async (req, res, next) => {
+  try {
+    const { certificateNumber } = req.params;
+    const batch = await Batch.findOne({ certificateNumber })
+      .populate('customer')
+      .populate('part')
+      .populate('recipe')
+      .populate('furnace');
+
+    if (!batch) {
+      return res.status(404).json({ success: false, message: `Certificate ${certificateNumber} not found.` });
+    }
+
+    const qc = await QCInspection.findOne({ batchId: batch.batchId });
+
+    res.json({
+      success: true,
+      verified: true,
+      certificateNumber: batch.certificateNumber,
+      heatNumber: batch.heatNumber,
+      batchId: batch.batchId,
+      customer: batch.customer?.companyName,
+      partNumber: batch.part?.partNumber,
+      process: batch.recipe?.recipeName || 'Heat Treatment',
+      hardnessResult: qc?.hardness?.averageValue || 'PASS',
+      qcStatus: batch.qcStatus,
+      inspectionDate: qc?.createdAt || batch.certificateGeneratedAt || batch.updatedAt
+    });
+  } catch (error) {
+    next(error);
+  }
+};

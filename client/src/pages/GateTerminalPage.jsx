@@ -27,7 +27,9 @@ import {
 } from 'lucide-react';
 import { WeightScaleCamera } from '../components/WeightScaleCamera';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import api, { API_BASE_URL } from '../api/client';
+import CreatableSelect from '../components/CreatableSelect';
 
 // Helper to convert weight in kg to words
 const weightInWords = (num) => {
@@ -168,10 +170,23 @@ const generateScalePhotoDataUrl = (weight, refId, type = 'scale') => {
 
 export const GateTerminalPage = ({ onSwitchPortal }) => {
   const { isLight } = useTheme();
-  const [activeTab, setActiveTab] = useState('inward'); // 'inward', 'outward', 'register'
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+
+  const [adminOperatorMode, setAdminOperatorMode] = useState(false);
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'register' : 'inward'); // 'inward', 'outward', 'register'
+  const [registerFilter, setRegisterFilter] = useState('ALL'); // 'ALL', 'INWARD', 'OUTWARD'
+  const [registerSearch, setRegisterSearch] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showGatePassModal, setShowGatePassModal] = useState(null);
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState(null);
+
+  // Keep admin on register view unless manual operator entry mode is explicitly toggled
+  useEffect(() => {
+    if (isAdmin && !adminOperatorMode) {
+      setActiveTab('register');
+    }
+  }, [isAdmin, adminOperatorMode]);
 
   // Live Digital Weight Machine State (RS-232 / USB Indicator IND-50T)
   const [liveScaleWeight, setLiveScaleWeight] = useState(1450.00);
@@ -274,43 +289,188 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
     (parseFloat(outwardForm.grossWeightKg) || 0) - (parseFloat(outwardForm.tareWeightKg) || 0)
   ).toFixed(2);
 
-  // Gate Movement Register Logs (starts empty - loaded from MongoDB via single API file)
-  const [gateLogs, setGateLogs] = useState([]);
-  const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+  // Gate Movement Register Logs (instant 0ms initialization from cache)
+  const [gateLogs, setGateLogs] = useState(() => {
+    const cached = api.cache.get('/gate/entries');
+    const rawList = Array.isArray(cached?.data) ? cached.data : (Array.isArray(cached?.entries) ? cached.entries : (Array.isArray(cached) ? cached : []));
+    return rawList.map((item) => ({
+      id: item.passId || item.id,
+      type: item.type,
+      timestamp: item.timestamp,
+      party: item.party,
+      docRef: item.docRef,
+      vehicleNo: item.vehicleNo,
+      partName: item.partName,
+      heatNo: item.heatNo,
+      grossWeightKg: item.grossWeightKg,
+      tareWeightKg: item.tareWeightKg,
+      netWeightKg: item.netWeightKg,
+      scalePhoto: item.scalePhotoPath ? `${API_BASE_URL}${item.scalePhotoPath}` : (item.scalePhoto || ''),
+      materialPhoto: item.materialPhotoPath ? `${API_BASE_URL}${item.materialPhotoPath}` : (item.materialPhoto || ''),
+      status: item.status
+    }));
+  });
+  const [isLoadingLogs, setIsLoadingLogs] = useState(() => gateLogs.length === 0);
 
-  // Load persisted gate entries from MongoDB on mount via centralized API client
+  // Filtered Gate Logs based on type filter (Inward Challans vs Outward Challans) and search query
+  const filteredLogs = gateLogs.filter((log) => {
+    if (registerFilter === 'INWARD' && log.type !== 'INWARD') return false;
+    if (registerFilter === 'OUTWARD' && log.type !== 'OUTWARD') return false;
+
+    if (registerSearch.trim()) {
+      const q = registerSearch.toLowerCase();
+      const matchId = log.id?.toLowerCase().includes(q);
+      const matchParty = log.party?.toLowerCase().includes(q);
+      const matchDoc = log.docRef?.toLowerCase().includes(q);
+      const matchVehicle = log.vehicleNo?.toLowerCase().includes(q);
+      const matchHeat = log.heatNo?.toLowerCase().includes(q);
+      const matchPart = log.partName?.toLowerCase().includes(q);
+      return Boolean(matchId || matchParty || matchDoc || matchVehicle || matchHeat || matchPart);
+    }
+    return true;
+  });
+
+  // Dropdown Master Lists with 0ms Cache Support
+  const [customersList, setCustomersList] = useState(() => {
+    const cached = api.cache.get('/customers');
+    return Array.isArray(cached) ? cached : (cached?.data || cached?.customers || []);
+  });
+  const [suppliersList, setSuppliersList] = useState(() => {
+    const cached = api.cache.get('/masters/suppliers');
+    return Array.isArray(cached) ? cached : (cached?.suppliers || cached?.data || []);
+  });
+  const [batchesList, setBatchesList] = useState(() => {
+    const cached = api.cache.get('/batches');
+    return Array.isArray(cached) ? cached : (cached?.batches || cached?.data || []);
+  });
+  const [customInwardParty, setCustomInwardParty] = useState(false);
+  const [customOutwardCustomer, setCustomOutwardCustomer] = useState(false);
+
+  // Load persisted gate entries and dropdown master data on mount & on sync events
+  const fetchEntries = async () => {
+    try {
+      const json = await api.gate.getEntries();
+      const rawList = Array.isArray(json?.data) ? json.data : (Array.isArray(json?.entries) ? json.entries : []);
+      if (json && json.success && rawList.length > 0) {
+        const mapped = rawList.map((item) => ({
+          id: item.passId || item.id,
+          type: item.type,
+          timestamp: item.timestamp,
+          party: item.party,
+          docRef: item.docRef,
+          vehicleNo: item.vehicleNo,
+          partName: item.partName,
+          heatNo: item.heatNo,
+          grossWeightKg: item.grossWeightKg,
+          tareWeightKg: item.tareWeightKg,
+          netWeightKg: item.netWeightKg,
+          scalePhoto: item.scalePhotoPath ? `${API_BASE_URL}${item.scalePhotoPath}` : (item.scalePhoto || ''),
+          materialPhoto: item.materialPhotoPath ? `${API_BASE_URL}${item.materialPhotoPath}` : (item.materialPhoto || ''),
+          status: item.status
+        }));
+        setGateLogs(mapped);
+      }
+    } catch (err) {
+      console.error('Failed to load gate entries via API:', err.message);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
+  const fetchDropdownData = async () => {
+    try {
+      const [custRes, suppRes, batchRes] = await Promise.all([
+        api.customers.getAll().catch(() => []),
+        api.suppliers.getAll().catch(() => []),
+        api.batches.getAll().catch(() => [])
+      ]);
+      const cList = Array.isArray(custRes) ? custRes : (custRes?.data || custRes?.customers || []);
+      const sList = Array.isArray(suppRes) ? suppRes : (suppRes?.suppliers || suppRes?.data || []);
+      const bList = Array.isArray(batchRes) ? batchRes : (batchRes?.batches || batchRes?.data || []);
+      setCustomersList(cList);
+      setSuppliersList(sList);
+      setBatchesList(bList);
+    } catch (err) {
+      console.warn('Could not load dropdown master lists:', err.message);
+    }
+  };
+
   useEffect(() => {
-    const fetchEntries = async () => {
-      try {
-        setIsLoadingLogs(true);
-        const json = await api.gate.getEntries();
-        if (json && json.success && Array.isArray(json.data)) {
-          const mapped = json.data.map((item) => ({
-            id: item.passId,
-            type: item.type,
-            timestamp: item.timestamp,
-            party: item.party,
-            docRef: item.docRef,
-            vehicleNo: item.vehicleNo,
-            partName: item.partName,
-            heatNo: item.heatNo,
-            grossWeightKg: item.grossWeightKg,
-            tareWeightKg: item.tareWeightKg,
-            netWeightKg: item.netWeightKg,
-            scalePhoto: item.scalePhotoPath ? `${API_BASE_URL}${item.scalePhotoPath}` : '',
-            materialPhoto: item.materialPhotoPath ? `${API_BASE_URL}${item.materialPhotoPath}` : '',
-            status: item.status
-          }));
-          setGateLogs(mapped);
-        }
-      } catch (err) {
-        console.error('Failed to load gate entries via API:', err.message);
-      } finally {
-        setIsLoadingLogs(false);
+    fetchEntries();
+    fetchDropdownData();
+
+    const handleSync = () => {
+      fetchEntries();
+      fetchDropdownData();
+    };
+
+    window.addEventListener('matheat_data_invalidated', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('matheat_data_invalidated', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, []);
+
+  const initialInwardState = {
+    partyType: 'CUSTOMER',
+    partyName: '',
+    challanNo: '',
+    partNumber: '',
+    heatNumber: '',
+    quantityPcs: '',
+    grossWeightKg: '',
+    tareWeightKg: '',
+    vehicleNo: '',
+    driverName: '',
+    driverPhone: '',
+    storageBay: '',
+    scalePhoto: null,
+    materialPhoto: null
+  };
+
+  const initialOutwardState = {
+    customerName: '',
+    batchId: '',
+    jobOrderNo: '',
+    partNumber: '',
+    heatNumber: '',
+    dispatchedQtyPcs: '',
+    grossWeightKg: '',
+    tareWeightKg: '',
+    vehicleNo: '',
+    transporter: '',
+    driverName: '',
+    eWayBillNo: '',
+    deliveryChallanNo: '',
+    scalePhoto: null,
+    materialPhoto: null
+  };
+
+  // Helper: Trigger print and automatically close the modal window once done
+  const handlePrintSlip = () => {
+    let closed = false;
+    const closeWindow = () => {
+      if (!closed) {
+        closed = true;
+        setShowGatePassModal(null);
+        window.removeEventListener('afterprint', closeWindow);
+        window.onafterprint = null;
       }
     };
-    fetchEntries();
-  }, []);
+
+    window.addEventListener('afterprint', closeWindow);
+    window.onafterprint = closeWindow;
+
+    try {
+      window.print();
+    } catch (e) {
+      console.warn('Print error:', e);
+    }
+
+    // Fallback in case browser finishes print synchronously or afterprint event is delayed
+    setTimeout(closeWindow, 800);
+  };
 
   const handleCreateInward = async (e) => {
     e.preventDefault();
@@ -340,7 +500,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
       netWeightKg: parseFloat(inwardNetWeight),
       scalePhoto: scalePhotoUrl,
       materialPhoto: materialPhotoUrl,
-      operator: 'Ramesh Patel',
+      operator: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Gate Operator',
       driverName: inwardForm.vehicleNo,
       status: 'GATE IN VERIFIED'
     };
@@ -368,6 +528,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
         };
         setGateLogs([mappedLog, ...gateLogs]);
         setShowGatePassModal(mappedLog);
+        setInwardForm(initialInwardState);
         return;
       }
     } catch (err) {
@@ -382,6 +543,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
     };
     setGateLogs([fallbackLog, ...gateLogs]);
     setShowGatePassModal(fallbackLog);
+    setInwardForm(initialInwardState);
   };
 
   const handleCreateOutward = async (e) => {
@@ -412,7 +574,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
       netWeightKg: parseFloat(outwardNetWeight),
       scalePhoto: scalePhotoUrl,
       materialPhoto: materialPhotoUrl,
-      operator: 'Ramesh Patel',
+      operator: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Gate Operator',
       driverName: outwardForm.vehicleNo,
       status: 'DISPATCH PASSED'
     };
@@ -440,6 +602,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
         };
         setGateLogs([mappedLog, ...gateLogs]);
         setShowGatePassModal(mappedLog);
+        setOutwardForm(initialOutwardState);
         return;
       }
     } catch (err) {
@@ -454,6 +617,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
     };
     setGateLogs([fallbackLog, ...gateLogs]);
     setShowGatePassModal(fallbackLog);
+    setOutwardForm(initialOutwardState);
   };
 
   return (
@@ -473,60 +637,70 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
             </span>
             <div>
               <h1 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
-                WEIGHBRIDGE &amp; GATE PASS TERMINAL
+                {isAdmin && !adminOperatorMode
+                  ? 'WEIGHBRIDGE GATE MOVEMENT REGISTER'
+                  : 'WEIGHBRIDGE & GATE PASS TERMINAL'}
                 <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                  isLight
+                  isAdmin && !adminOperatorMode
+                    ? isLight
+                      ? 'bg-blue-100 text-blue-900 border-blue-600'
+                      : 'bg-blue-500/20 text-blue-400 border-blue-500/50'
+                    : isLight
                     ? 'bg-emerald-100 text-emerald-900 border-emerald-600'
                     : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
                 }`}>
-                  LIVE TERMINAL #01
+                  {isAdmin && !adminOperatorMode ? 'ADMIN AUDIT OVERSIGHT' : 'LIVE TERMINAL #01'}
                 </span>
               </h1>
               <p className={`text-xs font-bold mt-0.5 ${
                 isLight ? 'text-black' : 'text-slate-300'
               }`}>
-                MATHEAT PVT. LTD. &bull; Inward &amp; Outward Metal Weight Verification with Camera Image Proof
+                {isAdmin && !adminOperatorMode
+                  ? 'MATHEAT PVT. LTD. • Complete Inward & Outward Challan Records with Weight & Camera Photo Audit Trail'
+                  : 'MATHEAT PVT. LTD. • Inward & Outward Metal Weight Verification with Camera Image Proof'}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Live Clock & Scale Health Indicators */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className={`border px-3 py-1.5 rounded-lg text-right transition-colors ${
-            isLight
-              ? 'bg-[#f1f5f9] border-black/40 text-black'
-              : 'bg-slate-950 border-slate-700 text-orange-400'
-          }`}>
-            <div className="text-[10px] uppercase font-black flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 text-orange-600" />
-              TERMINAL TIME
-            </div>
-            <div className="font-mono text-xs font-black">
-              {currentTime.toLocaleTimeString('en-IN', { hour12: true })}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={connectWebSerialScale}
-            className={`border px-3 py-1.5 rounded-lg text-right transition-colors cursor-pointer hover:opacity-90 ${
+        {/* Live Clock & Scale Health Indicators (Hidden for Admin Login) */}
+        {(!isAdmin || adminOperatorMode) && (
+          <div className="flex flex-wrap items-center gap-3">
+            <div className={`border px-3 py-1.5 rounded-lg text-right transition-colors ${
               isLight
                 ? 'bg-[#f1f5f9] border-black/40 text-black'
-                : 'bg-slate-950 border-slate-700 text-emerald-400'
-            }`}
-            title="Click to Connect RS232 / USB Digital Weigh Indicator Machine"
-          >
-            <div className="text-[10px] uppercase font-black flex items-center justify-end gap-1">
-              <Scale className="h-3.5 w-3.5 text-emerald-600" />
-              DIGITAL SCALE #1 (IND-50T)
+                : 'bg-slate-950 border-slate-700 text-orange-400'
+            }`}>
+              <div className="text-[10px] uppercase font-black flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5 text-orange-600" />
+                TERMINAL TIME
+              </div>
+              <div className="font-mono text-xs font-black">
+                {currentTime.toLocaleTimeString('en-IN', { hour12: true })}
+              </div>
             </div>
-            <div className="font-mono text-xs font-black flex items-center justify-end gap-1 text-emerald-600 dark:text-emerald-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              {liveScaleWeight.toFixed(2)} KG {isScaleConnected ? '(ONLINE)' : '(STANDBY)'}
-            </div>
-          </button>
-        </div>
+
+            <button
+              type="button"
+              onClick={connectWebSerialScale}
+              className={`border px-3 py-1.5 rounded-lg text-right transition-colors cursor-pointer hover:opacity-90 ${
+                isLight
+                  ? 'bg-[#f1f5f9] border-black/40 text-black'
+                  : 'bg-slate-950 border-slate-700 text-emerald-400'
+              }`}
+              title="Click to Connect RS232 / USB Digital Weigh Indicator Machine"
+            >
+              <div className="text-[10px] uppercase font-black flex items-center justify-end gap-1">
+                <Scale className="h-3.5 w-3.5 text-emerald-600" />
+                DIGITAL SCALE #1 (IND-50T)
+              </div>
+              <div className="font-mono text-xs font-black flex items-center justify-end gap-1 text-emerald-600 dark:text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                {liveScaleWeight.toFixed(2)} KG {isScaleConnected ? '(ONLINE)' : '(STANDBY)'}
+              </div>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 2. STATS SUMMARY BAR */}
@@ -586,62 +760,83 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
         </div>
       </div>
 
-      {/* 3. TERMINAL ACTION SELECTOR (INWARD vs OUTWARD vs LOGS) */}
-      <div className={`flex items-center gap-2 p-1.5 rounded-xl border shadow-inner max-w-xl transition-colors ${
-        isLight ? 'bg-[#edf1f5] border-black/40' : 'bg-slate-950 border-slate-800'
-      }`}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('inward')}
-          className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
-            activeTab === 'inward'
-              ? 'bg-blue-600 text-white shadow-md border border-black scale-[1.01]'
-              : isLight
-              ? 'text-black hover:bg-[#cbd5e1]'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <ArrowDownLeft className="h-4 w-4" />
-          MATERIAL INWARD (GATE IN)
-        </button>
+      {/* 3. TERMINAL ACTION SELECTOR (HIDDEN FOR ADMIN IN REGISTER-ONLY VIEW) */}
+      {isAdmin && adminOperatorMode && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs font-bold shadow-sm">
+          <div className="flex items-center gap-2">
+            <Cpu className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>Gate Weighbridge Operator Entry Mode (Manual Weighment Recording Active)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setAdminOperatorMode(false);
+              setActiveTab('register');
+            }}
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-black cursor-pointer shadow whitespace-nowrap"
+          >
+            ← Back to Movement Register
+          </button>
+        </div>
+      )}
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('outward')}
-          className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
-            activeTab === 'outward'
-              ? 'bg-orange-600 text-white shadow-md border border-black scale-[1.01]'
-              : isLight
-              ? 'text-black hover:bg-[#cbd5e1]'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <ArrowUpRight className="h-4 w-4" />
-          MATERIAL OUTWARD (GATE OUT)
-        </button>
+      {(!isAdmin || adminOperatorMode) && (
+        <div className={`flex items-center gap-2 p-1.5 rounded-xl border shadow-inner max-w-xl transition-colors ${
+          isLight ? 'bg-[#edf1f5] border-black/40' : 'bg-slate-950 border-slate-800'
+        }`}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('inward')}
+            className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'inward'
+                ? 'bg-blue-600 text-white shadow-md border border-black scale-[1.01]'
+                : isLight
+                ? 'text-black hover:bg-[#cbd5e1]'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <ArrowDownLeft className="h-4 w-4" />
+            MATERIAL INWARD (GATE IN)
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('register')}
-          className={`py-2.5 px-4 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-            activeTab === 'register'
-              ? isLight
-                ? 'bg-black text-white shadow-md border border-black scale-[1.01]'
-                : 'bg-slate-800 text-white shadow-md border border-slate-700 scale-[1.01]'
-              : isLight
-              ? 'text-black hover:bg-[#cbd5e1]'
-              : 'text-slate-300 hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <FileText className="h-4 w-4" />
-          REGISTER ({gateLogs.length})
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('outward')}
+            className={`flex-1 py-2.5 px-3 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'outward'
+                ? 'bg-orange-600 text-white shadow-md border border-black scale-[1.01]'
+                : isLight
+                ? 'text-black hover:bg-[#cbd5e1]'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <ArrowUpRight className="h-4 w-4" />
+            MATERIAL OUTWARD (GATE OUT)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('register')}
+            className={`py-2.5 px-4 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'register'
+                ? isLight
+                  ? 'bg-black text-white shadow-md border border-black scale-[1.01]'
+                  : 'bg-slate-800 text-white shadow-md border border-slate-700 scale-[1.01]'
+                : isLight
+                ? 'text-black hover:bg-[#cbd5e1]'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            REGISTER ({gateLogs.length})
+          </button>
+        </div>
+      )}
 
       {/* =========================================================================
-          TAB 1: MATERIAL INWARD (GRN & GATE ENTRY)
+          TAB 1: MATERIAL INWARD (GRN & GATE ENTRY) - HIDDEN IN ADMIN VIEW
           ========================================================================= */}
-      {activeTab === 'inward' && (
+      {(!isAdmin || adminOperatorMode) && activeTab === 'inward' && (
         <form onSubmit={handleCreateInward} className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Left Column: Data Entry */}
           <div className={`lg:col-span-7 border rounded-xl p-5 shadow-sm space-y-4 transition-colors ${
@@ -665,25 +860,29 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
               <div>
-                <label className={`block text-[11px] font-black uppercase mb-1 ${isLight ? 'text-black' : 'text-slate-200'}`}>
-                  Customer / Source Party *
-                </label>
-                <input
-                  type="text"
+                <CreatableSelect
+                  dropdownKey={inwardForm.partyType === 'SUPPLIER' ? 'supplier' : 'customer'}
+                  label={inwardForm.partyType === 'SUPPLIER' ? 'Supplier Name' : 'Customer Name'}
                   value={inwardForm.partyName}
-                  onChange={(e) => setInwardForm({ ...inwardForm, partyName: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border font-bold focus:ring-2 focus:ring-blue-600 transition-colors ${
-                    isLight
-                      ? 'bg-[#f1f5f9] border-black text-black'
-                      : 'bg-slate-950 border-slate-700 text-white'
-                  }`}
+                  onChange={(val) => setInwardForm({ ...inwardForm, partyName: val })}
+                  options={(inwardForm.partyType === 'SUPPLIER' ? suppliersList : customersList).map((item) => {
+                    const name = item.companyName || item.name;
+                    const code = item.customerCode || item.supplierCode;
+                    return {
+                      value: name,
+                      label: `${name}${code ? ` (${code})` : ''}`
+                    };
+                  })}
+                  placeholder={`-- Select ${inwardForm.partyType === 'SUPPLIER' ? 'Supplier' : 'Customer'} --`}
+                  addPlaceholder={`Type new ${inwardForm.partyType === 'SUPPLIER' ? 'supplier' : 'customer'} name...`}
+                  isLight={isLight}
                   required
                 />
               </div>
 
               <div>
                 <label className={`block text-[11px] font-black uppercase mb-1 ${isLight ? 'text-black' : 'text-slate-200'}`}>
-                  Customer Delivery Challan No. *
+                  Customer Inward Challan No. *
                 </label>
                 <input
                   type="text"
@@ -704,6 +903,8 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                 </label>
                 <input
                   type="text"
+                  list="inward-part-presets"
+                  placeholder="Select preset or enter part name"
                   value={inwardForm.partNumber}
                   onChange={(e) => setInwardForm({ ...inwardForm, partNumber: e.target.value })}
                   className={`w-full px-3 py-2 rounded-lg border font-bold focus:ring-2 focus:ring-blue-600 transition-colors ${
@@ -713,6 +914,17 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   }`}
                   required
                 />
+                <datalist id="inward-part-presets">
+                  <option value="Bearing Ring Forging (EN31)" />
+                  <option value="Transmission Pinion Shaft 24T (20MnCr5)" />
+                  <option value="Crown Wheel Ring Gear (8620)" />
+                  <option value="Spline Axle Shaft (EN19 / 4140)" />
+                  <option value="Connecting Rod (EN8 / 1040)" />
+                  <option value="Automotive Camshaft (16MnCr5)" />
+                  <option value="Helical Input Gear 18T" />
+                  <option value="Flanged Bushing / Sleeve" />
+                  <option value="Die Punch Tool Block (D2)" />
+                </datalist>
               </div>
 
               <div>
@@ -738,6 +950,8 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                 </label>
                 <input
                   type="text"
+                  list="inward-vehicle-presets"
+                  placeholder="e.g. GJ-01-AB-1234"
                   value={inwardForm.vehicleNo}
                   onChange={(e) => setInwardForm({ ...inwardForm, vehicleNo: e.target.value.toUpperCase() })}
                   className={`w-full px-3 py-2 rounded-lg border font-mono font-black focus:ring-2 focus:ring-blue-600 transition-colors ${
@@ -747,6 +961,13 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   }`}
                   required
                 />
+                <datalist id="inward-vehicle-presets">
+                  <option value="GJ-01-AB-1234 (Tata 407 Truck)" />
+                  <option value="GJ-27-TT-9876 (Eicher 14ft Pro)" />
+                  <option value="MH-20-DE-5544 (Mahindra Bolero Maxi)" />
+                  <option value="MH-12-PQ-8811 (10-Wheeler Multi-Axle)" />
+                  <option value="Customer Dedicated Transport" />
+                </datalist>
               </div>
 
               <div>
@@ -762,6 +983,18 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                       ? 'bg-[#f1f5f9] border-black text-black'
                       : 'bg-slate-950 border-slate-700 text-white'
                   }`}
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <CreatableSelect
+                  dropdownKey="storageLocation"
+                  label="Storage Bay / Yard Assignment"
+                  value={inwardForm.storageBay}
+                  onChange={(val) => setInwardForm({ ...inwardForm, storageBay: val })}
+                  placeholder="-- Select Storage Bay / Yard --"
+                  addPlaceholder="Type new storage bay..."
+                  isLight={isLight}
                 />
               </div>
             </div>
@@ -797,7 +1030,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   <button
                     type="button"
                     onClick={() => setInwardForm(prev => ({ ...prev, grossWeightKg: liveScaleWeight.toFixed(2) }))}
-                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30"
+                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30 whitespace-nowrap shrink-0"
                     title="Read live weight from machine into Gross Weight"
                   >
                     <Zap className="h-3 w-3" /> Sync Gross Wt
@@ -805,7 +1038,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   <button
                     type="button"
                     onClick={() => setInwardForm(prev => ({ ...prev, tareWeightKg: liveScaleWeight.toFixed(2) }))}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30"
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30 whitespace-nowrap shrink-0"
                     title="Record current weight as Tare (Empty Truck)"
                   >
                     <Scale className="h-3 w-3" /> Sync Tare
@@ -813,7 +1046,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   <button
                     type="button"
                     onClick={connectWebSerialScale}
-                    className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30"
+                    className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30 whitespace-nowrap shrink-0"
                     title="Connect Physical RS232 / USB Serial COM Port"
                   >
                     <Cpu className="h-3 w-3" /> COM Port
@@ -821,7 +1054,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-[10px] font-black uppercase">
@@ -920,9 +1153,9 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
       )}
 
       {/* =========================================================================
-          TAB 2: MATERIAL OUTWARD (DISPATCH & GATE EXIT)
+          TAB 2: MATERIAL OUTWARD (DISPATCH & GATE EXIT) - HIDDEN IN ADMIN VIEW
           ========================================================================= */}
-      {activeTab === 'outward' && (
+      {(!isAdmin || adminOperatorMode) && activeTab === 'outward' && (
         <form onSubmit={handleCreateOutward} className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Left Column: Data Entry */}
           <div className={`lg:col-span-7 border rounded-xl p-5 shadow-sm space-y-4 transition-colors ${
@@ -946,42 +1179,59 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
               <div>
-                <label className={`block text-[11px] font-black uppercase mb-1 ${isLight ? 'text-black' : 'text-slate-200'}`}>
-                  Destination Customer *
-                </label>
-                <input
-                  type="text"
+                <CreatableSelect
+                  dropdownKey="customer"
+                  label="Destination Customer"
                   value={outwardForm.customerName}
-                  onChange={(e) => setOutwardForm({ ...outwardForm, customerName: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border font-bold focus:ring-2 focus:ring-orange-600 transition-colors ${
-                    isLight
-                      ? 'bg-[#f1f5f9] border-black text-black'
-                      : 'bg-slate-950 border-slate-700 text-white'
-                  }`}
+                  onChange={(val) => setOutwardForm({ ...outwardForm, customerName: val })}
+                  options={customersList.map((c) => {
+                    const name = c.companyName || c.name;
+                    const code = c.customerCode;
+                    return {
+                      value: name,
+                      label: `${name}${code ? ` (${code})` : ''}`
+                    };
+                  })}
+                  placeholder="-- Select Customer from Dropdown --"
+                  addPlaceholder="Type new customer name to save in DB..."
+                  isLight={isLight}
                   required
                 />
               </div>
 
               <div>
-                <label className={`block text-[11px] font-black uppercase mb-1 ${isLight ? 'text-black' : 'text-slate-200'}`}>
-                  Finished Heat Treated Batch ID *
-                </label>
-                <input
-                  type="text"
+                <CreatableSelect
+                  label="Finished Batch ID"
                   value={outwardForm.batchId}
-                  onChange={(e) => setOutwardForm({ ...outwardForm, batchId: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-lg border border-blue-600 font-mono font-black focus:ring-2 focus:ring-orange-600 transition-colors ${
-                    isLight
-                      ? 'bg-[#f1f5f9] text-blue-700'
-                      : 'bg-slate-950 text-blue-400'
-                  }`}
+                  onChange={(val) => {
+                    const found = batchesList.find(b => (b.batchId || b._id) === val);
+                    if (found) {
+                      setOutwardForm(prev => ({
+                        ...prev,
+                        batchId: val,
+                        customerName: found.customer || prev.customerName,
+                        partNumber: found.partNumber || prev.partNumber,
+                        heatNumber: found.heatNumber || prev.heatNumber,
+                        dispatchedQtyPcs: found.targetQuantity || prev.dispatchedQtyPcs
+                      }));
+                    } else {
+                      setOutwardForm(prev => ({ ...prev, batchId: val }));
+                    }
+                  }}
+                  options={batchesList.map((b) => ({
+                    value: b.batchId || b._id,
+                    label: `${b.batchId} - ${b.customer?.companyName || (typeof b.customer === 'string' ? b.customer : 'Batch')} (${b.partNumber || 'Part'})`
+                  }))}
+                  placeholder="-- Select Completed Batch --"
+                  addPlaceholder="Type custom batch ID..."
+                  isLight={isLight}
                   required
                 />
               </div>
 
               <div>
                 <label className={`block text-[11px] font-black uppercase mb-1 ${isLight ? 'text-black' : 'text-slate-200'}`}>
-                  Delivery Challan / Invoice No. *
+                  Outward Challan / Invoice No. *
                 </label>
                 <input
                   type="text"
@@ -1002,6 +1252,8 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                 </label>
                 <input
                   type="text"
+                  list="outward-part-presets"
+                  placeholder="Select preset or enter part name"
                   value={outwardForm.partNumber}
                   onChange={(e) => setOutwardForm({ ...outwardForm, partNumber: e.target.value })}
                   className={`w-full px-3 py-2 rounded-lg border font-bold focus:ring-2 focus:ring-orange-600 transition-colors ${
@@ -1010,6 +1262,11 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                       : 'bg-slate-950 border-slate-700 text-white'
                   }`}
                 />
+                <datalist id="outward-part-presets">
+                  {Array.from(new Set(batchesList.map((b) => b.partNumber).filter(Boolean))).map((p, idx) => (
+                    <option key={idx} value={p} />
+                  ))}
+                </datalist>
               </div>
 
               <div>
@@ -1018,6 +1275,8 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                 </label>
                 <input
                   type="text"
+                  list="outward-vehicle-presets"
+                  placeholder="e.g. GJ-01-AB-1234 / Transport"
                   value={outwardForm.vehicleNo}
                   onChange={(e) => setOutwardForm({ ...outwardForm, vehicleNo: e.target.value.toUpperCase() })}
                   className={`w-full px-3 py-2 rounded-lg border font-mono font-black focus:ring-2 focus:ring-orange-600 transition-colors ${
@@ -1027,6 +1286,15 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   }`}
                   required
                 />
+                <datalist id="outward-vehicle-presets">
+                  <option value="Customer Dedicated Vehicle" />
+                  <option value="V-Trans India Ltd. Logistics" />
+                  <option value="TCI Express Cargo" />
+                  <option value="Safechem Transport Services" />
+                  <option value="GATI-KWE Surface Express" />
+                  <option value="Associated Road Carriers (ARC)" />
+                  <option value="Spot Dedicated Dispatch Truck" />
+                </datalist>
               </div>
 
               <div>
@@ -1077,7 +1345,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   <button
                     type="button"
                     onClick={() => setOutwardForm(prev => ({ ...prev, grossWeightKg: liveScaleWeight.toFixed(2) }))}
-                    className="px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30"
+                    className="px-2.5 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30 whitespace-nowrap shrink-0"
                     title="Read loaded vehicle weight from scale into Gross"
                   >
                     <Zap className="h-3 w-3" /> Sync Gross Wt
@@ -1085,7 +1353,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   <button
                     type="button"
                     onClick={() => setOutwardForm(prev => ({ ...prev, tareWeightKg: liveScaleWeight.toFixed(2) }))}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30"
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30 whitespace-nowrap shrink-0"
                     title="Record empty vehicle tare from scale"
                   >
                     <Scale className="h-3 w-3" /> Sync Tare
@@ -1093,7 +1361,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   <button
                     type="button"
                     onClick={connectWebSerialScale}
-                    className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30"
+                    className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-black cursor-pointer shadow flex items-center gap-1 border border-black/30 whitespace-nowrap shrink-0"
                     title="Connect Physical RS232 / USB Serial COM Port"
                   >
                     <Cpu className="h-3 w-3" /> COM Port
@@ -1101,7 +1369,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-[10px] font-black uppercase">
@@ -1200,28 +1468,111 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
       )}
 
       {/* =========================================================================
-          TAB 3: LIVE GATE MOVEMENT REGISTER & PHOTO AUDIT
+          TAB 3: LIVE GATE MOVEMENT REGISTER & PHOTO AUDIT (PRIMARY ADMIN VIEW)
           ========================================================================= */}
-      {activeTab === 'register' && (
+      {(activeTab === 'register' || (isAdmin && !adminOperatorMode)) && (
         <div className={`border rounded-xl overflow-hidden shadow-sm transition-colors ${
           isLight ? 'bg-[#f8fafc] border-black/40 text-black' : 'bg-slate-900 border-slate-800 text-white'
         }`}>
-          <div className={`p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+          <div className={`p-4 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${
             isLight ? 'border-black/30' : 'border-slate-800'
           }`}>
             <div>
-              <h2 className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <FileText className="h-4 w-4 text-orange-600" />
-                Live Weighbridge Movement Register
-              </h2>
+                <h2 className="text-sm font-black uppercase tracking-wider">
+                  Live Weighbridge Movement Register
+                </h2>
+                <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded-full border ${
+                  isLight ? 'bg-slate-200 border-black/40 text-black' : 'bg-slate-800 text-slate-200 border-slate-700'
+                }`}>
+                  {filteredLogs.length} OF {gateLogs.length} RECORDS
+                </span>
+              </div>
               <p className={`text-xs font-bold mt-0.5 ${isLight ? 'text-black' : 'text-slate-300'}`}>
-                Complete audit trail of all vehicles, gross/tare/net weights, and timestamped scale camera photos
+                {isAdmin && !adminOperatorMode
+                  ? 'Audit register of all Inward Delivery Challans and Outward Dispatch Challans with certified weigh scale readings & camera proof'
+                  : 'Complete audit trail of all vehicles, gross/tare/net weights, and timestamped scale camera photos'}
               </p>
             </div>
-            <div className={`text-xs font-mono font-black px-3 py-1 rounded-lg border ${
-              isLight ? 'bg-[#edf1f5] border-black/30 text-black' : 'bg-slate-800 border-slate-700 text-white'
-            }`}>
-              Total Records: {gateLogs.length}
+
+            {/* Inward vs Outward Challan Filters & Search Bar */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className={`flex items-center p-0.5 rounded-lg border text-xs font-black ${
+                isLight ? 'bg-slate-200 border-black/30' : 'bg-slate-950 border-slate-700'
+              }`}>
+                <button
+                  type="button"
+                  onClick={() => setRegisterFilter('ALL')}
+                  className={`px-2.5 py-1 rounded text-[11px] font-black cursor-pointer transition-all ${
+                    registerFilter === 'ALL'
+                      ? isLight ? 'bg-white text-slate-900 shadow-sm border border-slate-300' : 'bg-slate-800 text-white shadow-sm'
+                      : isLight ? 'text-slate-700 hover:text-black' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  All ({gateLogs.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRegisterFilter('INWARD')}
+                  className={`px-2.5 py-1 rounded text-[11px] font-black cursor-pointer transition-all flex items-center gap-1 ${
+                    registerFilter === 'INWARD'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : isLight ? 'text-blue-900 hover:text-blue-700' : 'text-blue-400 hover:text-blue-300'
+                  }`}
+                >
+                  <ArrowDownLeft className="h-3 w-3" />
+                  Inward Entries ({gateLogs.filter(l => l.type === 'INWARD').length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRegisterFilter('OUTWARD')}
+                  className={`px-2.5 py-1 rounded text-[11px] font-black cursor-pointer transition-all flex items-center gap-1 ${
+                    registerFilter === 'OUTWARD'
+                      ? 'bg-orange-600 text-white shadow-sm'
+                      : isLight ? 'text-orange-900 hover:text-orange-700' : 'text-orange-400 hover:text-orange-300'
+                  }`}
+                >
+                  <ArrowUpRight className="h-3 w-3" />
+                  Outward Entries ({gateLogs.filter(l => l.type === 'OUTWARD').length})
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-3 w-3 text-slate-500" />
+                <input
+                  type="text"
+                  value={registerSearch}
+                  onChange={(e) => setRegisterSearch(e.target.value)}
+                  placeholder="Search Challan, Party, Vehicle..."
+                  className={`pl-7 pr-3 py-1 text-xs rounded-lg border font-mono font-bold w-48 sm:w-56 ${
+                    isLight
+                      ? 'bg-white border-black/40 text-black placeholder-slate-500'
+                      : 'bg-slate-950 border-slate-700 text-white placeholder-slate-400'
+                  }`}
+                />
+              </div>
+
+              {/* Operator Mode Toggle Button (for Admin) */}
+              {isAdmin && !adminOperatorMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminOperatorMode(true);
+                    setActiveTab('inward');
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black border flex items-center gap-1 cursor-pointer transition-colors shadow-sm ${
+                    isLight
+                      ? 'bg-white hover:bg-slate-100 text-slate-800 border-black/30'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                  }`}
+                  title="Switch to Gate Operator Console to record manual weigh scale entries"
+                >
+                  <Cpu className="h-3 w-3 text-orange-600" />
+                  Operator Mode
+                </button>
+              )}
             </div>
           </div>
 
@@ -1236,7 +1587,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   <th className="p-3">Gate Slip #</th>
                   <th className="p-3">Type</th>
                   <th className="p-3">Date &amp; Time</th>
-                  <th className="p-3">Party Name</th>
+                  <th className="p-3">Party &amp; Challan Ref</th>
                   <th className="p-3">Vehicle No.</th>
                   <th className="p-3">Heat / Part</th>
                   <th className="p-3 text-right">Gross (Kg)</th>
@@ -1249,9 +1600,9 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
               <tbody className={`divide-y font-bold ${
                 isLight ? 'divide-black/20 text-black' : 'divide-slate-800 text-slate-200'
               }`}>
-                {gateLogs.length === 0 ? (
+                {filteredLogs.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="text-center py-10 font-mono text-xs text-slate-500">
+                    <td colSpan={11} className="text-center py-10 font-mono text-xs text-slate-500">
                       {isLoadingLogs ? (
                         <div className="flex items-center justify-center gap-2">
                           <RefreshCw className="h-4 w-4 animate-spin text-orange-600" />
@@ -1259,14 +1610,33 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                         </div>
                       ) : (
                         <div className="space-y-1">
-                          <div className="font-black text-slate-700 dark:text-slate-300">No gate entries in database yet.</div>
-                          <div className="text-[11px] text-slate-400 font-mono">Use the Inward or Outward terminal above to record live entries.</div>
+                          <div className="font-black text-slate-700 dark:text-slate-300">
+                            {registerSearch || registerFilter !== 'ALL'
+                              ? `No ${registerFilter !== 'ALL' ? registerFilter.toLowerCase() + ' ' : ''}entries matched your search.`
+                              : 'No gate entries in database yet.'}
+                          </div>
+                          {(registerSearch || registerFilter !== 'ALL') ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRegisterSearch('');
+                                setRegisterFilter('ALL');
+                              }}
+                              className="text-xs text-orange-600 dark:text-orange-400 font-bold underline cursor-pointer"
+                            >
+                              Clear Filter &amp; Search
+                            </button>
+                          ) : (
+                            <div className="text-[11px] text-slate-400 font-mono">
+                              Use the Inward or Outward terminal to record live entries.
+                            </div>
+                          )}
                         </div>
                       )}
                     </td>
                   </tr>
                 ) : (
-                  gateLogs.map((log) => (
+                  filteredLogs.map((log) => (
                   <tr key={log.id} className={`transition-colors ${
                     isLight ? 'hover:bg-[#e2e8f0]' : 'hover:bg-slate-850/50'
                   }`}>
@@ -1288,9 +1658,16 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                       {log.timestamp}
                     </td>
                     <td className="p-3 font-black">
-                      {log.party}
-                      <div className={`text-[10px] font-mono font-bold ${isLight ? 'text-slate-800' : 'text-slate-400'}`}>
-                        Ref: {log.docRef}
+                      <div className="font-extrabold">{log.party}</div>
+                      <div className={`text-[10px] font-mono font-bold mt-0.5 flex flex-wrap items-center gap-1 ${
+                        log.type === 'INWARD'
+                          ? 'text-blue-700 dark:text-blue-400'
+                          : 'text-orange-700 dark:text-orange-400'
+                      }`}>
+                        <span className="font-sans font-semibold text-slate-500 dark:text-slate-400">
+                          {log.type === 'INWARD' ? 'Inward Challan:' : 'Outward Challan:'}
+                        </span>
+                        <span className="font-bold underline">{log.docRef || 'N/A'}</span>
                       </div>
                     </td>
                     <td className="p-3 font-mono font-black">
@@ -1370,28 +1747,85 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
           ========================================================================= */}
       {showGatePassModal && (
         <div className="gate-pass-modal-backdrop fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-          {/* Dynamic scoped A5 page print rules */}
+          {/* Dynamic scoped A5 page print rules (Strict 1-Page Constraint) */}
           <style>{`
             @media print {
               @page {
                 size: A5 portrait !important;
-                margin: 4mm 5mm !important;
+                margin: 2mm 3mm !important;
               }
               html, body {
                 width: 148mm !important;
                 height: 210mm !important;
+                min-height: unset !important;
+                max-height: 210mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                overflow: hidden !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              #root, #root > div, main {
+                width: 100% !important;
+                height: 100% !important;
+                min-height: unset !important;
                 max-height: 210mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: hidden !important;
+                position: static !important;
+                display: block !important;
+              }
+              .gate-pass-modal-backdrop {
+                position: static !important;
+                inset: auto !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: hidden !important;
+                display: block !important;
+                width: 100% !important;
+                height: 100% !important;
+                max-height: 206mm !important;
+              }
+              #printable-gate-slip {
+                position: relative !important;
+                width: 100% !important;
+                max-width: 142mm !important;
+                height: 205mm !important;
+                max-height: 205mm !important;
+                box-sizing: border-box !important;
+                margin: 0 auto !important;
+                padding: 2.5mm 3mm !important;
+                border: 1.5px solid #000000 !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                overflow: hidden !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+              }
+              .gate-slip-photo-box {
+                height: 48px !important;
+                max-height: 48px !important;
+              }
+              .gate-slip-sign-box {
+                height: 38px !important;
+                max-height: 38px !important;
               }
             }
           `}</style>
           <div
             id="printable-gate-slip"
-            className="relative bg-white text-black border border-black max-w-2xl w-full p-3 sm:p-4 shadow-2xl rounded-xl font-sans space-y-2 max-h-[96vh] overflow-y-auto"
+            className="relative bg-white text-black border border-black max-w-2xl w-full p-3 sm:p-4 shadow-2xl rounded-xl font-sans space-y-2 my-auto max-h-[96vh] overflow-y-auto"
           >
-            {/* Official MATHEAT Weighbridge Background Watermark */}
+            {/* Official MATHEAT Weighbridge Background Watermark (50% Opacity) */}
             <div
               className="gate-slip-watermark absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-0 select-none overflow-hidden"
               style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: 'none' }}
@@ -1399,12 +1833,13 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
               <img
                 src="/matheat_logo.png"
                 alt="MATHEAT Watermark"
-                className="w-[200px] max-w-[45%] object-contain opacity-[0.07] pointer-events-none filter grayscale"
+                className="w-[260px] max-w-[55%] object-contain pointer-events-none"
+                style={{ opacity: 0.5 }}
               />
-              <div className="watermark-text text-2xl sm:text-3xl font-black tracking-[0.2em] text-black/[0.07] -rotate-12 uppercase mt-2 font-mono select-none">
+              <div className="watermark-text text-sm sm:text-2xl md:text-3xl font-black tracking-wider sm:tracking-[0.2em] text-black/[0.15] -rotate-12 uppercase mt-2 font-mono select-none text-center px-4">
                 MATHEAT WEIGHBRIDGE VERIFIED
               </div>
-              <div className="watermark-text text-[10px] sm:text-xs font-black tracking-wider text-black/[0.06] -rotate-12 uppercase font-mono select-none mt-1">
+              <div className="watermark-text text-[9px] sm:text-xs font-black tracking-normal sm:tracking-wider text-black/[0.12] -rotate-12 uppercase font-mono select-none mt-1 text-center px-4">
                 CERTIFIED A5 WEIGHMENT BILL &bull; SECURE GATE PASS
               </div>
             </div>
@@ -1455,18 +1890,18 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
             </div>
 
             {/* 2. CONSIGNMENT & VEHICLE DETAILS GRID */}
-            <div className="relative z-10 border border-black bg-white rounded text-xs font-mono">
-              <div className="bg-slate-100 border-b border-black px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-700 flex justify-between">
+            <div className="relative z-10 border border-black bg-transparent rounded text-xs font-mono">
+              <div className="bg-slate-100/70 border-b border-black px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-700 flex justify-between">
                 <span>CONSIGNMENT &amp; LOGISTICS PARTICULARS</span>
                 <span>TERMINAL: WB-01 (IND-50T DIGITAL)</span>
               </div>
-              <div className="grid grid-cols-2 divide-x divide-black text-[10px]">
+              <div className="grid grid-cols-2 divide-x divide-black text-[10px] bg-transparent">
                 <div className="p-1.5 space-y-0.5">
-                  <div className="flex justify-between border-b border-slate-200 pb-0.5">
+                  <div className="flex justify-between border-b border-slate-200/80 pb-0.5">
                     <span className="font-bold text-slate-600">Party / Client:</span>
                     <span className="font-black text-black">{showGatePassModal.party}</span>
                   </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-0.5">
+                  <div className="flex justify-between border-b border-slate-200/80 pb-0.5">
                     <span className="font-bold text-slate-600">Vehicle Number:</span>
                     <span className="font-black text-blue-700 text-[11px]">{showGatePassModal.vehicleNo}</span>
                   </div>
@@ -1476,11 +1911,11 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   </div>
                 </div>
                 <div className="p-1.5 space-y-0.5">
-                  <div className="flex justify-between border-b border-slate-200 pb-0.5">
+                  <div className="flex justify-between border-b border-slate-200/80 pb-0.5">
                     <span className="font-bold text-slate-600">Raw Heat No:</span>
                     <span className="font-black text-orange-600">{showGatePassModal.heatNo}</span>
                   </div>
-                  <div className="flex justify-between border-b border-slate-200 pb-0.5">
+                  <div className="flex justify-between border-b border-slate-200/80 pb-0.5">
                     <span className="font-bold text-slate-600">Material / Part:</span>
                     <span className="font-black text-black">{showGatePassModal.partName}</span>
                   </div>
@@ -1493,12 +1928,12 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
             </div>
 
             {/* 3. CERTIFIED WEIGHT BILL SUMMARY */}
-            <div className="relative z-10 border border-black rounded overflow-hidden">
+            <div className="relative z-10 border border-black rounded overflow-hidden bg-transparent">
               <div className="bg-slate-900 text-white px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider flex justify-between font-mono">
                 <span>CERTIFIED WEIGHT INDICATOR MEASUREMENTS (KG)</span>
                 <span>CALIBRATED LOAD CELLS &bull; TOLERANCE ±0.05%</span>
               </div>
-              <div className="grid grid-cols-3 divide-x divide-black bg-white text-center">
+              <div className="grid grid-cols-3 divide-x divide-black bg-transparent text-center">
                 <div className="p-1.5">
                   <div className="text-[9px] uppercase font-bold text-slate-600 font-mono">1. GROSS WEIGHT</div>
                   <div className="text-sm sm:text-base font-black font-mono text-slate-900 mt-0.5">
@@ -1506,14 +1941,14 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                   </div>
                   <div className="text-[8px] text-slate-500 font-mono">Loaded Vehicle</div>
                 </div>
-                <div className="p-1.5 bg-slate-50">
+                <div className="p-1.5 bg-slate-50/50">
                   <div className="text-[9px] uppercase font-bold text-slate-600 font-mono">2. TARE WEIGHT</div>
                   <div className="text-sm sm:text-base font-black font-mono text-slate-900 mt-0.5">
                     {showGatePassModal.tareWeightKg.toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-[10px]">KG</span>
                   </div>
                   <div className="text-[8px] text-slate-500 font-mono">Empty Vehicle / Tare</div>
                 </div>
-                <div className="p-1.5 bg-blue-50 border-l-2 border-blue-600">
+                <div className="p-1.5 bg-blue-50/50 border-l-2 border-blue-600">
                   <div className="text-[9px] uppercase font-black text-blue-900 font-mono">3. NET MATERIAL WEIGHT</div>
                   <div className="text-base sm:text-lg font-black font-mono text-blue-700 mt-0.5">
                     {showGatePassModal.netWeightKg.toLocaleString('en-IN', { minimumFractionDigits: 2 })} <span className="text-[10px]">KG</span>
@@ -1522,7 +1957,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                 </div>
               </div>
               {/* Words & Bill Charges */}
-              <div className="border-t border-black bg-slate-100 px-2.5 py-0.5 flex flex-col sm:flex-row sm:items-center justify-between text-[9px] font-mono gap-0.5">
+              <div className="border-t border-black bg-slate-100/70 px-2.5 py-0.5 flex flex-col sm:flex-row sm:items-center justify-between text-[9px] font-mono gap-0.5">
                 <div>
                   <span className="font-bold text-slate-700">Net Weight in Words: </span>
                   <span className="font-black text-black">{weightInWords(showGatePassModal.netWeightKg)}</span>
@@ -1554,7 +1989,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                     <span>1. DIGITAL INDICATOR WEIGHT (IND-50T)</span>
                     <span className="text-emerald-400 font-bold">● CERTIFIED</span>
                   </div>
-                  <div className="h-16 sm:h-20 w-full flex items-center justify-center overflow-hidden bg-black">
+                  <div className="gate-slip-photo-box h-16 sm:h-20 w-full flex items-center justify-center overflow-hidden bg-black">
                     {showGatePassModal.scalePhoto ? (
                       <img
                         src={showGatePassModal.scalePhoto}
@@ -1573,7 +2008,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                     <span>2. PHYSICAL METAL LOAD ON WEIGHBRIDGE DECK</span>
                     <span className="text-orange-400 font-bold">● DECK CCTV</span>
                   </div>
-                  <div className="h-16 sm:h-20 w-full flex items-center justify-center overflow-hidden bg-black">
+                  <div className="gate-slip-photo-box h-16 sm:h-20 w-full flex items-center justify-center overflow-hidden bg-black">
                     {showGatePassModal.materialPhoto ? (
                       <img
                         src={showGatePassModal.materialPhoto}
@@ -1590,15 +2025,15 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
 
             {/* 5. OFFICIAL SIGN-OFF AUDIT BLOCKS */}
             <div className="relative z-10 grid grid-cols-3 gap-1.5 text-center text-[9px] font-mono font-bold">
-              <div className="border border-black rounded p-1 bg-white flex flex-col justify-between h-13 sm:h-14">
+              <div className="gate-slip-sign-box border border-black rounded p-1 bg-white flex flex-col justify-between h-13 sm:h-14">
                 <div className="text-[8px] text-slate-600 font-bold uppercase">Weighbridge Operator</div>
                 <div className="border-t border-black/40 pt-0.5">
-                  <div className="font-black text-black">Ramesh Patel</div>
-                  <div className="text-[7.5px] text-slate-500 font-mono">Lic. Weighman #WM-01</div>
+                  <div className="font-black text-black">{showGatePassModal?.operator || (user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Gate Operator')}</div>
+                  <div className="text-[7.5px] text-slate-500 font-mono">{user?.badgeNumber ? `Badge: ${user.badgeNumber}` : 'Licensed Weighman'}</div>
                 </div>
               </div>
 
-              <div className="border border-black rounded p-1 bg-white flex flex-col justify-between h-13 sm:h-14">
+              <div className="gate-slip-sign-box border border-black rounded p-1 bg-white flex flex-col justify-between h-13 sm:h-14">
                 <div className="text-[8px] text-slate-600 font-bold uppercase">Driver / Transporter Sign</div>
                 <div className="border-t border-black/40 pt-0.5">
                   <div className="font-black text-black">{showGatePassModal.vehicleNo}</div>
@@ -1606,7 +2041,7 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
                 </div>
               </div>
 
-              <div className="border border-black rounded p-1 bg-white flex flex-col justify-between h-13 sm:h-14">
+              <div className="gate-slip-sign-box border border-black rounded p-1 bg-white flex flex-col justify-between h-13 sm:h-14">
                 <div className="text-[8px] text-slate-600 font-bold uppercase">Gate Security In-Charge</div>
                 <div className="border-t border-black/40 pt-0.5">
                   <div className="font-black text-black">MATHEAT Main Gate</div>
@@ -1628,10 +2063,11 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
             {/* Modal Actions (Hidden in Print) */}
             <div className="relative z-10 flex items-center gap-2 pt-1 no-print">
               <button
-                onClick={() => window.print()}
+                onClick={handlePrintSlip}
                 className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-black shadow border border-black flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                title="Print A5 Gate Slip and automatically close window"
               >
-                <Printer className="h-4 w-4" /> Print A5 Gate Slip &amp; Weight Photo
+                <Printer className="h-4 w-4" /> Print &amp; Close Gate Slip
               </button>
               <button
                 onClick={() => setShowGatePassModal(null)}
@@ -1648,8 +2084,8 @@ export const GateTerminalPage = ({ onSwitchPortal }) => {
           MODAL: CAMERA PHOTO FULL PREVIEW
           ========================================================================= */}
       {selectedPhotoPreview && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className={`border border-black/40 rounded-2xl max-w-2xl w-full p-4 space-y-3 relative shadow-2xl ${
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className={`border border-black/40 rounded-2xl max-w-2xl w-full p-4 space-y-3 relative shadow-2xl my-auto max-h-[92vh] overflow-y-auto ${
             isLight ? 'bg-[#f8fafc] text-black' : 'bg-[#090e17] text-[#f8fafc]'
           }`}>
             <div className={`flex items-center justify-between border-b pb-2 ${

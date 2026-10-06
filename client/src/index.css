@@ -8,38 +8,56 @@
    Brand identity: Royal Blue + Flame Orange.
 */
 :root, .light-theme {
-  --bg-app: #edf1f5; /* Clean industrial base */
-  --bg-surface: #f1f5f9; /* Crisp sub-panels */
-  --bg-card: #f8fafc; /* Elegant shade of white (not proper #ffffff) */
-  --border-card: #0f172a; /* Sharp black borders - no blanding */
-  --border-dark: #000000;
-  --text-main: #000000; /* Pure bold black */
-  --text-muted: #000000; /* Pure bold black */
-  --text-sub: #111827;
+  --bg-app: #f1f5f9; /* Enterprise light background matching ERP-main */
+  --bg-surface: #f8fafc; /* Crisp sub-panels */
+  --bg-card: #ffffff; /* Clean white card */
+  --border-card: #cbd5e1; /* Precise enterprise border matching ERP-main (hsl 214.3 31.8% 85%) */
+  --border-dark: #94a3b8;
+  --text-main: #0f172a; /* Deep contrast dark slate/black on white */
+  --text-muted: #334155;
+  --text-sub: #475569;
   --table-header: #f1f5f9;
   --table-row-hover: #e2e8f0;
 }
 
-.dark-theme {
-  --bg-app: hsl(222, 47%, 2%);
+.dark-theme, .dark {
+  --bg-app: hsl(222, 47%, 2%); /* Deep base #020617 */
   --bg-surface: hsl(217.2, 32.6%, 14%);
-  --bg-card: hsl(222, 47%, 7%);
-  --border-card: hsl(217.2, 32.6%, 20%);
+  --bg-card: hsl(222, 47%, 7%); /* #0b1220 */
+  --border-card: hsl(217.2, 32.6%, 18%); /* #1e293b matching ERP-main */
   --border-dark: #334155;
-  --text-main: hsl(210, 40%, 98%);
-  --text-muted: hsl(215, 20.2%, 65.1%);
+  --text-main: hsl(210, 40%, 98%); /* Clean light font on dark #f8fafc */
+  --text-muted: hsl(215, 20.2%, 65.1%); /* #94a3b8 */
   --text-sub: #64748b;
   --table-header: hsl(222, 47%, 5%);
   --table-row-hover: hsl(217.2, 32.6%, 12%);
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     background-color: var(--bg-app);
     color: var(--text-main);
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
     @apply font-sans antialiased min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-200;
   }
+
+  /* Touch-friendly interactive elements on mobile */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 13.5px;
+    }
+  }
 }
+
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
@@ -50,7 +68,7 @@
   background: var(--bg-app);
 }
 ::-webkit-scrollbar-thumb {
-  background: #0f172a;
+  background: var(--border-card);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -99,23 +117,52 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  opacity: 0.25;
+  opacity: 0.50;
   mix-blend-mode: multiply;
   pointer-events: none;
   z-index: 0;
 }
 
 .dark-theme .erp-watermark::before {
-  opacity: 0.18;
+  opacity: 0.50;
   mix-blend-mode: screen;
   filter: invert(1) hue-rotate(180deg);
 }
 
+/* Responsive Watermark for Tablet & Mobile (Sidebar is hidden/drawer, center at 50% and scale to screen) */
+@media (max-width: 1024px) {
+  .erp-watermark::before {
+    left: 50% !important;
+    top: 50% !important;
+    width: min(72vw, 320px) !important;
+    height: min(72vw, 320px) !important;
+    opacity: 0.50 !important;
+  }
+
+  .dark-theme .erp-watermark::before {
+    opacity: 0.50 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .erp-watermark::before {
+    left: 50% !important;
+    top: 50% !important;
+    width: min(75vw, 240px) !important;
+    height: min(75vw, 240px) !important;
+    opacity: 0.50 !important;
+  }
+
+  .dark-theme .erp-watermark::before {
+    opacity: 0.50 !important;
+  }
+}
+
 /* ==========================================================================
-   LIGHT THEME: SHARP BLACK HIGH-CONTRAST SYSTEM (NO BLANDING GRAY)
+   LIGHT THEME: HIGH CONTRAST DARK TYPOGRAPHY ON WHITE & ERP-MAIN BORDERS
    ========================================================================== */
 
-/* Main Cards / Boxes - Solid Shades of White with Strong Black Borders (No Proper #ffffff) */
+/* Main Cards / Boxes - Solid White Surfaces with Clean Enterprise Borders */
 .light-theme .bg-slate-900,
 .light-theme .bg-slate-900\/95,
 .light-theme .bg-slate-900\/90,
@@ -123,13 +170,14 @@
 .light-theme .bg-slate-900\/70,
 .light-theme .bg-slate-900\/50,
 .light-theme .card-bg {
-  background-color: #f8fafc !important; /* Elegant shade of white */
+  background-color: #ffffff !important;
+  color: #0f172a !important;
   opacity: 1 !important;
-  border-color: #0f172a !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
 }
 
-/* Recessed Panels / Sub-boxes inside Cards - Subtle cool shade of white */
+/* Recessed Panels inside Cards */
 .light-theme .bg-slate-950,
 .light-theme .bg-slate-850,
 .light-theme .bg-slate-800,
@@ -138,12 +186,14 @@
 .light-theme .bg-slate-800\/50,
 .light-theme .bg-slate-800\/40,
 .light-theme .surface-bg {
-  background-color: #f1f5f9 !important; /* Recessed shade of white */
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
   opacity: 1 !important;
-  border-color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
-/* All Borders: Deep Solid Black/Dark Slate - Zero Faint Blanding */
+/* Borders in Light Theme: Crisp 1px Enterprise Border matching ERP-main (#cbd5e1) */
+.light-theme .border,
 .light-theme .border-slate-800,
 .light-theme .border-slate-700,
 .light-theme .border-slate-600,
@@ -154,11 +204,12 @@
 .light-theme .border-slate-800\/80,
 .light-theme .border-slate-700\/50,
 .light-theme .border-slate-700\/60,
-.light-theme .border-theme {
-  border-color: #0f172a !important;
+.light-theme .border-theme,
+.light-theme [class*="border-black"] {
+  border-color: #cbd5e1 !important;
 }
 
-/* All Text: SHARP BLACK (Replacing all washed out grey on light backgrounds) */
+/* Font Color on Light Background: DEEP DARK SLATE / BLACK */
 .light-theme .text-slate-100,
 .light-theme .text-slate-200,
 .light-theme .text-slate-300,
@@ -173,48 +224,123 @@
 .light-theme .text-gray-600,
 .light-theme .text-gray-700,
 .light-theme .text-theme-main,
-.light-theme .text-theme-muted {
-  color: #000000 !important;
+.light-theme .text-theme-muted,
+.light-theme h1,
+.light-theme h2,
+.light-theme h3,
+.light-theme h4,
+.light-theme h5,
+.light-theme h6,
+.light-theme p,
+.light-theme label,
+.light-theme td,
+.light-theme th,
+.light-theme .text-slate-100,
+.light-theme .text-slate-200,
+.light-theme .text-slate-300,
+.light-theme .text-slate-400,
+.light-theme .text-slate-500,
+.light-theme .text-slate-600,
+.light-theme .text-slate-700,
+.light-theme .text-slate-800,
+.light-theme .text-slate-900,
+.light-theme .text-gray-400,
+.light-theme .text-gray-500,
+.light-theme .text-gray-600,
+.light-theme .text-gray-700,
+.light-theme .text-theme-main,
+.light-theme .text-theme-muted,
+.light-theme span:not(.badge):not([class*="bg-orange"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not(button *):not(#printable-purchase-order *):not(#printable-tax-invoice *):not(#invoice-print-container *),
+.light-theme .text-white:not(button):not(button *):not([class*="bg-orange"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="po-"]):not([class*="bg-[#0b2545]"]):not(#printable-purchase-order *):not(#printable-tax-invoice *):not(#invoice-print-container *) {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
 }
 
-/* Text over Dark Backgrounds, Photos, Images, Buttons & Banners: SOOTHING SHADE OF WHITE (NO HARSH PROPER WHITE) */
-.text-white,
-.light-theme .text-white,
-.light-theme [class*="bg-slate-950"] .text-white,
-.light-theme [class*="bg-black"] .text-white,
-.light-theme .bg-blue-600,
+/* Muted secondary body text in light theme */
+.light-theme p,
+.light-theme .text-slate-500,
+.light-theme .text-slate-600 {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+}
+
+/* Buttons with colored fills ALWAYS retain crisp white font */
+button.bg-orange-600,
+button.bg-orange-700,
+button.bg-blue-600,
+button.bg-blue-700,
+button.bg-emerald-600,
+button.bg-red-600,
+.light-theme button.bg-orange-600,
+.light-theme button.bg-orange-700,
+.light-theme button.bg-blue-600,
+.light-theme button.bg-blue-700,
+.light-theme button.bg-emerald-600,
+.light-theme button.bg-red-600,
+.light-theme button.bg-orange-600 *,
+.light-theme button.bg-orange-700 *,
+.light-theme button.bg-blue-600 *,
+.light-theme button.bg-blue-700 *,
+.light-theme button.bg-emerald-600 *,
+.light-theme button.bg-red-600 *,
+.dark-theme button.bg-orange-600 *,
+.dark-theme button.bg-orange-700 *,
+.dark-theme button.bg-blue-600 *,
+.dark-theme button.bg-blue-700 *,
+.dark-theme button.bg-emerald-600 *,
+.dark-theme button.bg-red-600 * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+.bg-blue-700,
+.light-theme button.bg-orange-600,
+.light-theme button.bg-orange-700,
+.light-theme button.bg-blue-600,
+.light-theme button.bg-blue-700,
+.light-theme button.bg-slate-800,
+.light-theme button.bg-slate-900,
+.light-theme button.bg-slate-950,
+.light-theme button.bg-black,
 .light-theme .bg-orange-600,
-.light-theme .bg-\[\#0b2545\],
-.light-theme .bg-\[\#ea580c\],
-.furnace-text-white {
-  color: #f8fafc !important; /* Refined shade of white */
+.light-theme .bg-orange-700,
+.light-theme .bg-blue-600,
+.light-theme .bg-blue-700,
+.light-theme [class*="bg-orange-600"] *,
+.light-theme [class*="bg-orange-700"] *,
+.light-theme [class*="bg-blue-600"] *,
+.light-theme [class*="bg-blue-700"] *,
+.light-theme button.bg-slate-800 *,
+.light-theme button.bg-slate-900 *,
+.light-theme button.bg-slate-950 *,
+.light-theme button.bg-black * {
+  color: #ffffff !important;
 }
 
-/* Table Headers & Cells in Sharp Black */
+/* Table Headers & Cells in Light Theme */
 .light-theme th,
 .light-theme td {
-  color: #000000 !important;
-  border-color: #0f172a !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
 .light-theme th {
   background-color: #f1f5f9 !important;
-  color: #000000 !important;
+  color: #0f172a !important;
   font-weight: 800 !important;
-  border-bottom: 2px solid #000000 !important;
+  border-bottom: 1.5px solid #cbd5e1 !important;
 }
 
-/* Input Fields & Dropdowns in Shade of White with Sharp Black Text */
+/* Input Fields in Light Theme */
 .light-theme input,
 .light-theme select,
 .light-theme textarea,
 .light-theme input[type="text"],
 .light-theme input[type="number"] {
-  background-color: #f1f5f9 !important; /* Shade of white */
-  color: #000000 !important;
-  -webkit-text-fill-color: #000000 !important;
-  border: 1.5px solid #000000 !important;
-  font-weight: 800 !important;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 700 !important;
   opacity: 1 !important;
 }
 
@@ -301,27 +427,271 @@
   font-weight: 800 !important;
 }
 
-/* Shop Floor Control Top Banner - Sleek Dark Industrial Console */
-.light-theme .from-slate-900.via-slate-800.to-slate-900 {
-  background-image: linear-gradient(135deg, #020617 0%, #0f172a 50%, #020617 100%) !important;
-  border: 1px solid #0f172a !important;
+/* Ensure NO dark box/gradient appears in Light Theme */
+.light-theme .from-slate-900.via-slate-800.to-slate-900,
+.light-theme [class*="from-slate-900"],
+.light-theme .dark-hero-banner,
+.light-theme [class*="bg-slate-900"],
+.light-theme [class*="bg-slate-950"],
+.light-theme [class*="bg-slate-850"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
 }
 
-.light-theme .from-slate-900.via-slate-800.to-slate-900 .text-white {
-  color: #ffffff !important;
-}
-
-.light-theme .from-slate-900.via-slate-800.to-slate-900 .text-slate-400 {
-  color: #e2e8f0 !important;
+.light-theme .from-slate-900 *,
+.light-theme [class*="from-slate-900"] * {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
 }
 
 /* ==========================================================================
+   DARK THEME: HIGH CONTRAST LIGHT TYPOGRAPHY ON DARK & ERP-MAIN BORDERS
+   ========================================================================== */
+
+/* Cards with bg-white or light colors convert to dark elevated surfaces */
+.dark-theme .bg-white,
+.dark .bg-white {
+  background-color: hsl(222, 47%, 7%) !important;
+  color: #f8fafc !important;
+  border-color: #1e293b !important;
+}
+
+.dark-theme .bg-slate-50,
+.dark-theme .bg-slate-100,
+.dark-theme [class*="bg-[#f8fafc]"],
+.dark-theme [class*="bg-[#f1f5f9]"],
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark [class*="bg-[#f8fafc]"],
+.dark [class*="bg-[#f1f5f9]"] {
+  background-color: hsl(217.2, 32.6%, 12%) !important;
+  color: #f8fafc !important;
+  border-color: #1e293b !important;
+}
+
+/* All borders in dark theme match ERP-main: #1e293b (hsl 217.2 32.6% 18%) */
+.dark-theme .border,
+.dark-theme .border-slate-800,
+.dark-theme .border-slate-700,
+.dark-theme .border-slate-600,
+.dark-theme .border-slate-300,
+.dark-theme .border-slate-200,
+.dark-theme .border-slate-100,
+.dark-theme .border-theme,
+.dark-theme [class*="border-black"],
+.dark .border,
+.dark .border-slate-800,
+.dark .border-slate-700,
+.dark .border-slate-600,
+.dark .border-slate-300,
+.dark .border-slate-200,
+.dark .border-slate-100,
+.dark .border-theme,
+.dark [class*="border-black"] {
+  border-color: #1e293b !important;
+}
+
+/* Font colors on dark background: crisp light font */
+.dark-theme h1,
+.dark-theme h2,
+.dark-theme h3,
+.dark-theme h4,
+.dark-theme h5,
+.dark-theme h6,
+.dark-theme label,
+.dark-theme .text-slate-900,
+.dark-theme .text-black,
+.dark-theme .text-slate-800,
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6,
+.dark label,
+.dark .text-slate-900,
+.dark .text-black,
+.dark .text-slate-800 {
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+}
+
+.dark-theme p,
+.dark-theme .text-slate-700,
+.dark-theme .text-slate-600,
+.dark-theme .text-slate-500,
+.dark-theme .text-slate-400,
+.dark p,
+.dark .text-slate-700,
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-slate-400 {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+}
+
+.dark-theme span:not(.badge):not([class*="bg-"]):not(button *),
+.dark span:not(.badge):not([class*="bg-"]):not(button *) {
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+}
+
+/* Table headers & cells in dark theme */
+.dark-theme th,
+.dark th {
+  background-color: hsl(222, 47%, 4%) !important;
+  color: #f8fafc !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+
+.dark-theme td,
+.dark td {
+  border-color: #1e293b !important;
+}
+
+/* Input Fields in Dark Theme */
+.dark-theme input,
+.dark-theme select,
+.dark-theme textarea,
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: hsl(222, 47%, 5%) !important;
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+  border: 1px solid #1e293b !important;
+}
+
+.dark-theme input:focus,
+.dark-theme select:focus,
+.dark-theme textarea:focus,
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #3b82f6 !important;
+  outline: 2px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+.dark-theme input::placeholder,
+.dark-theme select::placeholder,
+.dark-theme textarea::placeholder,
+.dark input::placeholder,
+.dark select::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* ==========================================================================
+   ENTERPRISE DATA TABLES: RESPONSIVE HORIZONTAL SCROLL & CELL PRESERVATION
+   ========================================================================== */
+.overflow-x-auto {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  position: relative;
+  scrollbar-width: thin;
+  max-width: 100%;
+}
+
+/* Smooth sleek scrollbar for tables on desktop & mobile */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 9999px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 9999px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.75);
+}
+
+.dark-theme .overflow-x-auto::-webkit-scrollbar-track,
+.dark .overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark-theme .overflow-x-auto::-webkit-scrollbar-thumb,
+.dark .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+/* Responsive Table Behavior (< 1024px / Mobile & Tablet Views) */
+@media (max-width: 1024px) {
+  /* Prevent table columns from being crushed into unreadable vertical slivers (excludes printable documents) */
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) > table,
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) {
+    min-width: 760px;
+    width: 100%;
+  }
+
+  /* Compact, legible cell padding */
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) th {
+    padding: 8px 12px !important;
+    font-size: 10px !important;
+    letter-spacing: 0.04em;
+    white-space: nowrap !important;
+  }
+
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) td {
+    padding: 8px 12px !important;
+    font-size: 11px !important;
+  }
+
+  /* Keep codes, numbers, badges, and action buttons cleanly on one line */
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) td button,
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) td .badge,
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) td span[class*="rounded"],
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) td .font-mono,
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) td .flex {
+    white-space: nowrap !important;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) > table,
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) {
+    min-width: 700px;
+  }
+
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) th {
+    padding: 7px 10px !important;
+    font-size: 9.5px !important;
+  }
+
+  .overflow-x-auto:not(.invoice-sheet-wrapper):not(.po-sheet-wrapper) table:not(#printable-tax-invoice table):not(#printable-purchase-order table) td {
+    padding: 7px 10px !important;
+    font-size: 10.5px !important;
+  }
+}
+
+/* Responsive Modal Scroll & Viewport Containment */
+.modal-overlay,
+div[class*="fixed inset-0"] {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure smooth touch scrolling on horizontal data tables */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+
    PRINT SPECIFICS (All-Parameter Certificate & Document Printing)
    ========================================================================== */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 5mm 6mm;
+    margin: 4mm 5mm;
   }
 
   /* Completely hide app navigation, header, sidebar, and non-print elements */
@@ -333,56 +703,93 @@
     display: none !important;
   }
 
+  /* Remove any Tailwind space-y margins from parent containers in print */
+  .space-y-6 > *,
+  .space-y-4 > *,
+  .space-y-2 > *,
+  .space-y-1 > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
   html,
   body {
+    width: 100% !important;
     height: 100% !important;
-    min-height: 287mm !important;
-    max-height: 287mm !important;
+    max-height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
-    color: #000000 !important;
+    color: #0f172a !important;
     overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Reset layout constraints on top-level app containers only */
   #root,
   #root > div,
+  #root > div > div,
   main {
-    height: 100% !important;
-    max-height: 287mm !important;
+    width: 100% !important;
+    height: auto !important;
     overflow: visible !important;
     position: static !important;
     padding: 0 !important;
     margin: 0 !important;
     display: block !important;
-    width: 100% !important;
+    background: #ffffff !important;
   }
 
-  /* Target printable invoice sheet: Fills full A4 height with flex distribution so there is NO blank void at bottom or top */
+  .invoice-sheet-wrapper,
+  .po-sheet-wrapper {
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* Target printable invoice sheet: Strict 1-Page A4 (210mm x 297mm) matching Live Template */
   #printable-tax-invoice {
     position: relative !important;
     width: 100% !important;
     max-width: 100% !important;
-    height: 286mm !important;
-    min-height: 286mm !important;
-    max-height: 286mm !important;
+    height: 284mm !important;
+    max-height: 284mm !important;
     box-sizing: border-box !important;
     margin: 0 auto !important;
-    padding: 2.5mm 3.5mm !important;
+    padding: 3mm 4mm !important;
     box-shadow: none !important;
-    border: 1.5px solid #000000 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
     background: #ffffff !important;
-    color: #000000 !important;
+    color: #0f172a !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
+    gap: 5px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;
     break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    overflow: hidden !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  #printable-tax-invoice,
+  #printable-tax-invoice * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   /* Ensure child sections do not break across pages */
@@ -422,8 +829,94 @@
     padding: 0 !important;
   }
 
+  /* Prominent Items Table Ledger - Continuous vertical dividers like authentic industrial bills */
+  #printable-tax-invoice .invoice-table-container {
+    flex: 1 1 auto !important;
+    min-height: 140px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background-color: #ffffff !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  #printable-tax-invoice .invoice-table-container table {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #printable-tax-invoice .invoice-table-container th,
+  #printable-tax-invoice .invoice-table-container td {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    box-sizing: border-box !important;
+    padding: 3.5px 3px !important;
+    line-height: 1.15 !important;
+  }
+
+  #printable-tax-invoice .invoice-table-container th {
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.03em !important;
+    padding: 4px 3px !important;
+  }
+
+  #printable-tax-invoice .invoice-table-container td {
+    font-size: 9.5px !important;
+  }
+
+  #printable-tax-invoice .invoice-table-container td .font-mono {
+    font-size: 8.5px !important;
+    white-space: normal !important;
+    word-break: break-all !important;
+  }
+
+  #printable-tax-invoice .invoice-table-container tbody {
+    height: 100% !important;
+    background-color: #ffffff !important;
+  }
+
+  #printable-tax-invoice .invoice-total-row {
+    background-color: #f8fafc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-tax-invoice .invoice-total-row td {
+    padding: 4px 3px !important;
+    font-size: 10px !important;
+  }
+
+  /* Scoped print color preservation for Tax Invoice elements */
+  #printable-tax-invoice .invoice-header-badge,
+  #printable-tax-invoice .invoice-table-header,
+  #printable-tax-invoice .invoice-footer-banner {
+    background-color: #0b2545 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-tax-invoice .invoice-total-banner,
+  #printable-tax-invoice .invoice-footer-wedge {
+    background-color: #ea580c !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   /* Background watermark in print - locked to absolute center behind content */
-  .invoice-watermark-overlay {
+  .invoice-watermark-overlay,
+  .po-watermark-overlay {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
@@ -440,17 +933,21 @@
     padding: 0 !important;
   }
 
-  .invoice-watermark-overlay img {
+  .invoice-watermark-overlay img,
+  .po-watermark-overlay img {
     width: 380px !important;
     max-width: 65% !important;
     height: auto !important;
-    opacity: 0.08 !important;
+    opacity: 0.50 !important;
     display: block !important;
     margin: auto !important;
   }
 
   /* Backdrop reset so only the modal slip prints */
-  .gate-pass-modal-backdrop {
+  .gate-pass-modal-backdrop,
+  .po-modal-backdrop,
+  .invoice-modal-backdrop,
+  #invoice-modal-backdrop {
     position: static !important;
     background: transparent !important;
     backdrop-filter: none !important;
@@ -461,6 +958,175 @@
     inset: auto !important;
     overflow: visible !important;
     display: block !important;
+  }
+
+  .po-modal-container,
+  .invoice-modal-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .po-sheet-wrapper,
+  .invoice-sheet-wrapper {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: transparent !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Purchase Order Printable Styling - Strict Single Page A4 (210mm x 297mm) */
+  #printable-purchase-order {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 286mm !important;
+    min-height: 286mm !important;
+    max-height: 286mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 3mm 4mm !important;
+    box-shadow: none !important;
+    border: 1.5px solid #0b2545 !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    overflow: hidden !important;
+  }
+
+  #printable-purchase-order,
+  #printable-purchase-order * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  #printable-purchase-order > * {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Force exact brand colors in print */
+  #printable-purchase-order .po-header-badge {
+    background-color: #0b2545 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-purchase-order .po-badge-title {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-purchase-order .po-badge-subtitle {
+    background-color: #ea580c !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-purchase-order .po-table-header {
+    background-color: #0b2545 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-purchase-order .po-table-header th {
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-purchase-order .po-total-banner {
+    background-color: #ea580c !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-purchase-order .po-total-banner * {
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Transparent table rows and body */
+  #printable-purchase-order table,
+  #printable-purchase-order tbody,
+  #printable-purchase-order tr:not(.po-table-header),
+  #printable-purchase-order td {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+
+  /* Force exact brand colors in print for Tax Invoice */
+  #printable-tax-invoice .invoice-header-badge,
+  #printable-tax-invoice .invoice-table-header,
+  #printable-tax-invoice .invoice-footer-banner {
+    background-color: #0b2545 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-tax-invoice .invoice-table-header th {
+    background-color: #0b2545 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-tax-invoice .invoice-total-banner,
+  #printable-tax-invoice .invoice-footer-wedge {
+    background-color: #ea580c !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-tax-invoice .invoice-header-badge *,
+  #printable-tax-invoice .invoice-table-header *,
+  #printable-tax-invoice .invoice-total-banner *,
+  #printable-tax-invoice .invoice-footer-banner *,
+  #printable-tax-invoice .invoice-footer-wedge *,
+  #printable-tax-invoice .furnace-banner-box * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Card background colors preserved in print to match Live Template */
+  #printable-tax-invoice .bg-\[\#f4f7fa\],
+  #printable-tax-invoice [class*="bg-[#f4f7fa]"] {
+    background-color: #f4f7fa !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Gate Pass Slip Printable Styling - Strict Single Page A5 (148mm x 210mm) */
@@ -522,17 +1188,510 @@
     width: 200px !important;
     max-width: 55% !important;
     height: auto !important;
-    opacity: 0.07 !important;
+    opacity: 0.50 !important;
     display: block !important;
     margin: auto !important;
     border: none !important;
   }
 
   .gate-slip-watermark .watermark-text {
-    opacity: 0.06 !important;
+    opacity: 0.25 !important;
     display: block !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 }
+
+/* Purchase Order Badge Text Contrast Rules - Guaranteed Pure White */
+.po-badge-title {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.po-badge-subtitle {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* ==========================================================================
+   STRICT LIGHT MODE ONLY FOR PURCHASE ORDER & TAX INVOICE / BILL (SCREEN & PRINT)
+   Rule per User Request: PO and Invoice/Bill MUST ALWAYS render in LIGHT MODE
+   (Pure White Clean Paper Document) even when Dark Mode is active in the app.
+   ========================================================================== */
+
+/* 1. Sheet Root Containers - Strictly White Paper Document */
+.po-sheet-wrapper,
+#printable-purchase-order,
+#printable-tax-invoice,
+.printable-certificate,
+#invoice-print-container,
+.dark-theme .po-sheet-wrapper,
+.dark .po-sheet-wrapper,
+.dark-theme #printable-purchase-order,
+.dark #printable-purchase-order,
+.dark-theme #printable-tax-invoice,
+.dark #printable-tax-invoice,
+.dark-theme .printable-certificate,
+.dark .printable-certificate,
+.dark-theme #invoice-print-container,
+.dark #invoice-print-container {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* 2. Surfaces and Cards inside PO and Invoice/Bill */
+#printable-purchase-order .bg-white,
+.dark #printable-purchase-order .bg-white,
+.dark-theme #printable-purchase-order .bg-white,
+#printable-tax-invoice .bg-white,
+.dark #printable-tax-invoice .bg-white,
+.dark-theme #printable-tax-invoice .bg-white,
+#invoice-print-container .bg-white,
+.dark #invoice-print-container .bg-white,
+.dark-theme #invoice-print-container .bg-white {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+#printable-purchase-order .bg-slate-50,
+#printable-purchase-order .bg-slate-100,
+#printable-purchase-order [class*="bg-[#f8fafc]"],
+#printable-purchase-order [class*="bg-[#f4f7fa]"],
+.dark #printable-purchase-order .bg-slate-50,
+.dark #printable-purchase-order .bg-slate-100,
+.dark #printable-purchase-order [class*="bg-[#f8fafc]"],
+.dark #printable-purchase-order [class*="bg-[#f4f7fa]"],
+.dark-theme #printable-purchase-order .bg-slate-50,
+.dark-theme #printable-purchase-order .bg-slate-100,
+.dark-theme #printable-purchase-order [class*="bg-[#f8fafc]"],
+.dark-theme #printable-purchase-order [class*="bg-[#f4f7fa]"],
+#printable-tax-invoice .bg-slate-50,
+#printable-tax-invoice .bg-slate-100,
+#printable-tax-invoice [class*="bg-[#f8fafc]"],
+#printable-tax-invoice [class*="bg-[#f4f7fa]"],
+.dark #printable-tax-invoice .bg-slate-50,
+.dark #printable-tax-invoice .bg-slate-100,
+.dark #printable-tax-invoice [class*="bg-[#f8fafc]"],
+.dark #printable-tax-invoice [class*="bg-[#f4f7fa]"],
+.dark-theme #printable-tax-invoice .bg-slate-50,
+.dark-theme #printable-tax-invoice .bg-slate-100,
+.dark-theme #printable-tax-invoice [class*="bg-[#f8fafc]"],
+.dark-theme #printable-tax-invoice [class*="bg-[#f4f7fa]"],
+#invoice-print-container .bg-slate-50,
+#invoice-print-container .bg-slate-100,
+#invoice-print-container [class*="bg-[#f8fafc]"],
+#invoice-print-container [class*="bg-[#f4f7fa]"],
+.dark #invoice-print-container .bg-slate-50,
+.dark #invoice-print-container .bg-slate-100,
+.dark #invoice-print-container [class*="bg-[#f8fafc]"],
+.dark #invoice-print-container [class*="bg-[#f4f7fa]"],
+.dark-theme #invoice-print-container .bg-slate-50,
+.dark-theme #invoice-print-container .bg-slate-100,
+.dark-theme #invoice-print-container [class*="bg-[#f8fafc]"],
+.dark-theme #invoice-print-container [class*="bg-[#f4f7fa]"] {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+#printable-purchase-order .bg-blue-50,
+.dark #printable-purchase-order .bg-blue-50,
+.dark-theme #printable-purchase-order .bg-blue-50,
+#printable-tax-invoice .bg-blue-50,
+.dark #printable-tax-invoice .bg-blue-50,
+.dark-theme #printable-tax-invoice .bg-blue-50 {
+  background-color: #eff6ff !important;
+  color: #1e3a8a !important;
+  border-color: #93c5fd !important;
+}
+
+#printable-purchase-order .bg-blue-100,
+.dark #printable-purchase-order .bg-blue-100,
+.dark-theme #printable-purchase-order .bg-blue-100,
+#printable-tax-invoice .bg-blue-100,
+.dark #printable-tax-invoice .bg-blue-100,
+.dark-theme #printable-tax-invoice .bg-blue-100 {
+  background-color: #dbeafe !important;
+  color: #1e3a8a !important;
+  border-color: #93c5fd !important;
+}
+
+#printable-purchase-order .bg-emerald-100,
+.dark #printable-purchase-order .bg-emerald-100,
+.dark-theme #printable-purchase-order .bg-emerald-100,
+#printable-tax-invoice .bg-emerald-100,
+.dark #printable-tax-invoice .bg-emerald-100,
+.dark-theme #printable-tax-invoice .bg-emerald-100 {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #6ee7b7 !important;
+}
+
+/* 3. Text elements inside PO and Invoice strictly high contrast dark */
+#printable-purchase-order h1:not([class*="po-"]):not(.text-white),
+#printable-purchase-order h2:not([class*="po-"]):not(.text-white),
+#printable-purchase-order h3:not([class*="po-"]):not(.text-white),
+#printable-purchase-order div:not([class*="po-"]):not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not(button *),
+#printable-purchase-order p:not([class*="po-"]),
+#printable-purchase-order td,
+#printable-purchase-order strong:not([class*="po-"]):not(.text-white),
+#printable-purchase-order span:not([class*="po-"]):not([class*="bg-orange"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-[#0b2545]"]):not(button *),
+.dark #printable-purchase-order h1:not([class*="po-"]):not(.text-white),
+.dark #printable-purchase-order h2:not([class*="po-"]):not(.text-white),
+.dark #printable-purchase-order h3:not([class*="po-"]):not(.text-white),
+.dark #printable-purchase-order div:not([class*="po-"]):not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not(button *),
+.dark #printable-purchase-order p:not([class*="po-"]),
+.dark #printable-purchase-order td,
+.dark #printable-purchase-order strong:not([class*="po-"]):not(.text-white),
+.dark #printable-purchase-order span:not([class*="po-"]):not([class*="bg-orange"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-[#0b2545]"]):not(button *),
+.dark-theme #printable-purchase-order h1:not([class*="po-"]):not(.text-white),
+.dark-theme #printable-purchase-order h2:not([class*="po-"]):not(.text-white),
+.dark-theme #printable-purchase-order h3:not([class*="po-"]):not(.text-white),
+.dark-theme #printable-purchase-order div:not([class*="po-"]):not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not(button *),
+.dark-theme #printable-purchase-order p:not([class*="po-"]),
+.dark-theme #printable-purchase-order td,
+.dark-theme #printable-purchase-order strong:not([class*="po-"]):not(.text-white),
+.dark-theme #printable-purchase-order span:not([class*="po-"]):not([class*="bg-orange"]):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-[#0b2545]"]):not(button *),
+#printable-tax-invoice h1:not(.text-white),
+#printable-tax-invoice h2,
+#printable-tax-invoice h3,
+#printable-tax-invoice div:not(.furnace-banner-box *):not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not(button *),
+#printable-tax-invoice p,
+#printable-tax-invoice td,
+#printable-tax-invoice strong,
+#printable-tax-invoice span:not(.text-white):not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not([class*="bg-blue"]):not(button *),
+.dark #printable-tax-invoice h1:not(.text-white),
+.dark #printable-tax-invoice h2,
+.dark #printable-tax-invoice h3,
+.dark #printable-tax-invoice div:not(.furnace-banner-box *):not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not(button *),
+.dark #printable-tax-invoice p,
+.dark #printable-tax-invoice td,
+.dark #printable-tax-invoice strong,
+.dark #printable-tax-invoice span:not(.text-white):not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not([class*="bg-blue"]):not(button *),
+.dark-theme #printable-tax-invoice h1:not(.text-white),
+.dark-theme #printable-tax-invoice h2,
+.dark-theme #printable-tax-invoice h3,
+.dark-theme #printable-tax-invoice div:not(.furnace-banner-box *):not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not(button *),
+.dark-theme #printable-tax-invoice p,
+.dark-theme #printable-tax-invoice td,
+.dark-theme #printable-tax-invoice strong,
+.dark-theme #printable-tax-invoice span:not(.text-white):not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not([class*="bg-blue"]):not(button *),
+#invoice-print-container h1,
+#invoice-print-container h2,
+#invoice-print-container h3,
+#invoice-print-container div:not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not(button *),
+#invoice-print-container p,
+#invoice-print-container td,
+#invoice-print-container strong,
+#invoice-print-container span:not([class*="bg-"]):not(button *),
+.dark #invoice-print-container h1,
+.dark #invoice-print-container h2,
+.dark #invoice-print-container h3,
+.dark #invoice-print-container div:not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not(button *),
+.dark #invoice-print-container p,
+.dark #invoice-print-container td,
+.dark #invoice-print-container strong,
+.dark #invoice-print-container span:not([class*="bg-"]):not(button *),
+.dark-theme #invoice-print-container h1,
+.dark-theme #invoice-print-container h2,
+.dark-theme #invoice-print-container h3,
+.dark-theme #invoice-print-container div:not([class*="bg-[#0b2545]"]):not([class*="bg-[#ea580c]"]):not([class*="bg-orange"]):not(button *),
+.dark-theme #invoice-print-container p,
+.dark-theme #invoice-print-container td,
+.dark-theme #invoice-print-container strong,
+.dark-theme #invoice-print-container span:not([class*="bg-"]):not(button *) {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+/* Secondary muted text in PO and Invoice */
+#printable-purchase-order .text-slate-500,
+#printable-purchase-order .text-slate-600,
+#printable-purchase-order .text-slate-700,
+.dark #printable-purchase-order .text-slate-500,
+.dark #printable-purchase-order .text-slate-600,
+.dark #printable-purchase-order .text-slate-700,
+.dark-theme #printable-purchase-order .text-slate-500,
+.dark-theme #printable-purchase-order .text-slate-600,
+.dark-theme #printable-purchase-order .text-slate-700,
+#printable-tax-invoice .text-slate-500,
+#printable-tax-invoice .text-slate-600,
+#printable-tax-invoice .text-slate-700,
+.dark #printable-tax-invoice .text-slate-500,
+.dark #printable-tax-invoice .text-slate-600,
+.dark #printable-tax-invoice .text-slate-700,
+.dark-theme #printable-tax-invoice .text-slate-500,
+.dark-theme #printable-tax-invoice .text-slate-600,
+.dark-theme #printable-tax-invoice .text-slate-700,
+#invoice-print-container .text-slate-500,
+#invoice-print-container .text-slate-600,
+#invoice-print-container .text-slate-700,
+.dark #invoice-print-container .text-slate-500,
+.dark #invoice-print-container .text-slate-600,
+.dark #invoice-print-container .text-slate-700,
+.dark-theme #invoice-print-container .text-slate-500,
+.dark-theme #invoice-print-container .text-slate-600,
+.dark-theme #invoice-print-container .text-slate-700 {
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+}
+
+/* Deep blue brand text in PO and Invoice */
+#printable-purchase-order .text-blue-900,
+#printable-purchase-order .text-blue-950,
+#printable-purchase-order .text-\[\#0b2545\],
+.dark #printable-purchase-order .text-blue-900,
+.dark #printable-purchase-order .text-blue-950,
+.dark #printable-purchase-order .text-\[\#0b2545\],
+.dark-theme #printable-purchase-order .text-blue-900,
+.dark-theme #printable-purchase-order .text-blue-950,
+.dark-theme #printable-purchase-order .text-\[\#0b2545\],
+#printable-tax-invoice .text-blue-900,
+#printable-tax-invoice .text-blue-950,
+#printable-tax-invoice .text-\[\#0b2545\],
+.dark #printable-tax-invoice .text-blue-900,
+.dark #printable-tax-invoice .text-blue-950,
+.dark #printable-tax-invoice .text-\[\#0b2545\],
+.dark-theme #printable-tax-invoice .text-blue-900,
+.dark-theme #printable-tax-invoice .text-blue-950,
+.dark-theme #printable-tax-invoice .text-\[\#0b2545\] {
+  color: #0b2545 !important;
+  -webkit-text-fill-color: #0b2545 !important;
+}
+
+/* 4. Borders inside PO and Invoice strictly light */
+#printable-purchase-order [class*="border-slate-"],
+#printable-purchase-order [class*="border-"],
+.dark #printable-purchase-order [class*="border-slate-"],
+.dark-theme #printable-purchase-order [class*="border-slate-"],
+#printable-tax-invoice [class*="border-slate-"],
+#printable-tax-invoice [class*="border-[#e2e8f0]"],
+.dark #printable-tax-invoice [class*="border-slate-"],
+.dark #printable-tax-invoice [class*="border-[#e2e8f0]"],
+.dark-theme #printable-tax-invoice [class*="border-slate-"],
+.dark-theme #printable-tax-invoice [class*="border-[#e2e8f0]"],
+#invoice-print-container [class*="border-slate-"],
+.dark #invoice-print-container [class*="border-slate-"],
+.dark-theme #invoice-print-container [class*="border-slate-"] {
+  border-color: #cbd5e1 !important;
+}
+
+/* 5. Document Headers, Badges and Total Banners retain pure white font */
+.po-header-badge,
+.po-header-badge *,
+.po-badge-title,
+.po-badge-title *,
+.po-badge-subtitle,
+.po-badge-subtitle *,
+.po-total-banner,
+.po-total-banner *,
+#printable-purchase-order .po-header-badge,
+#printable-purchase-order .po-header-badge *,
+#printable-purchase-order [class*="po-header-badge"],
+#printable-purchase-order [class*="po-header-badge"] *,
+#printable-purchase-order .po-badge-title,
+#printable-purchase-order .po-badge-title *,
+#printable-purchase-order div.po-badge-title,
+#printable-purchase-order .po-badge-subtitle,
+#printable-purchase-order .po-badge-subtitle *,
+#printable-purchase-order span.po-badge-subtitle,
+#printable-purchase-order .po-total-banner,
+#printable-purchase-order .po-total-banner *,
+.dark #printable-purchase-order .po-header-badge,
+.dark #printable-purchase-order .po-header-badge *,
+.dark #printable-purchase-order .po-badge-title,
+.dark #printable-purchase-order .po-badge-title *,
+.dark #printable-purchase-order div.po-badge-title,
+.dark #printable-purchase-order .po-badge-subtitle,
+.dark #printable-purchase-order .po-badge-subtitle *,
+.dark #printable-purchase-order span.po-badge-subtitle,
+.dark #printable-purchase-order .po-total-banner,
+.dark #printable-purchase-order .po-total-banner *,
+.dark-theme #printable-purchase-order .po-header-badge,
+.dark-theme #printable-purchase-order .po-header-badge *,
+.dark-theme #printable-purchase-order .po-badge-title,
+.dark-theme #printable-purchase-order .po-badge-title *,
+.dark-theme #printable-purchase-order div.po-badge-title,
+.dark-theme #printable-purchase-order .po-badge-subtitle,
+.dark-theme #printable-purchase-order .po-badge-subtitle *,
+.dark-theme #printable-purchase-order span.po-badge-subtitle,
+.dark-theme #printable-purchase-order .po-total-banner,
+.dark-theme #printable-purchase-order .po-total-banner *,
+.light-theme #printable-purchase-order .po-header-badge,
+.light-theme #printable-purchase-order .po-header-badge *,
+.light-theme #printable-purchase-order .po-badge-title,
+.light-theme #printable-purchase-order .po-badge-title *,
+.light-theme #printable-purchase-order div.po-badge-title,
+.light-theme #printable-purchase-order .po-badge-subtitle,
+.light-theme #printable-purchase-order .po-badge-subtitle *,
+.light-theme #printable-purchase-order span.po-badge-subtitle,
+.light-theme #printable-purchase-order .po-total-banner,
+.light-theme #printable-purchase-order .po-total-banner * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+#printable-purchase-order .po-header-badge,
+.dark #printable-purchase-order .po-header-badge,
+.dark-theme #printable-purchase-order .po-header-badge,
+.light-theme #printable-purchase-order .po-header-badge {
+  background-color: #0b2545 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+#printable-purchase-order .po-table-header,
+#printable-purchase-order .po-table-header th,
+.dark #printable-purchase-order .po-table-header,
+.dark #printable-purchase-order .po-table-header th,
+.dark-theme #printable-purchase-order .po-table-header,
+.dark-theme #printable-purchase-order .po-table-header th,
+.light-theme #printable-purchase-order .po-table-header,
+.light-theme #printable-purchase-order .po-table-header th,
+#printable-tax-invoice thead,
+#printable-tax-invoice thead th,
+.dark #printable-tax-invoice thead,
+.dark #printable-tax-invoice thead th,
+.dark-theme #printable-tax-invoice thead,
+.dark-theme #printable-tax-invoice thead th,
+#invoice-print-container thead,
+#invoice-print-container thead th,
+.dark #invoice-print-container thead,
+.dark #invoice-print-container thead th,
+.dark-theme #invoice-print-container thead,
+.dark-theme #invoice-print-container thead th,
+#printable-tax-invoice [class*="bg-[#0b2545]"],
+#printable-tax-invoice .invoice-header-badge,
+#printable-tax-invoice .invoice-table-header,
+#printable-tax-invoice .invoice-footer-banner,
+.dark #printable-tax-invoice [class*="bg-[#0b2545]"],
+.dark #printable-tax-invoice .invoice-header-badge,
+.dark #printable-tax-invoice .invoice-table-header,
+.dark #printable-tax-invoice .invoice-footer-banner,
+.dark-theme #printable-tax-invoice [class*="bg-[#0b2545]"],
+.dark-theme #printable-tax-invoice .invoice-header-badge,
+.dark-theme #printable-tax-invoice .invoice-table-header,
+.dark-theme #printable-tax-invoice .invoice-footer-banner {
+  background-color: #0b2545 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+#printable-tax-invoice [class*="bg-[#ea580c]"],
+#printable-tax-invoice [class*="bg-[#ea580c]"] *,
+#printable-tax-invoice .invoice-total-banner,
+#printable-tax-invoice .invoice-total-banner *,
+#printable-tax-invoice .invoice-footer-wedge,
+#printable-tax-invoice .invoice-footer-wedge *,
+.dark #printable-tax-invoice [class*="bg-[#ea580c]"],
+.dark #printable-tax-invoice [class*="bg-[#ea580c]"] *,
+.dark #printable-tax-invoice .invoice-total-banner,
+.dark #printable-tax-invoice .invoice-total-banner *,
+.dark #printable-tax-invoice .invoice-footer-wedge,
+.dark #printable-tax-invoice .invoice-footer-wedge *,
+.dark-theme #printable-tax-invoice [class*="bg-[#ea580c]"],
+.dark-theme #printable-tax-invoice [class*="bg-[#ea580c]"] *,
+.dark-theme #printable-tax-invoice .invoice-total-banner,
+.dark-theme #printable-tax-invoice .invoice-total-banner *,
+.dark-theme #printable-tax-invoice .invoice-footer-wedge,
+.dark-theme #printable-tax-invoice .invoice-footer-wedge *,
+#printable-tax-invoice [class*="bg-[#0b2545]"] *,
+#printable-tax-invoice .invoice-header-badge *,
+#printable-tax-invoice .invoice-table-header *,
+#printable-tax-invoice .invoice-table-header th,
+#printable-tax-invoice .invoice-footer-banner *,
+.dark #printable-tax-invoice [class*="bg-[#0b2545]"] *,
+.dark #printable-tax-invoice .invoice-header-badge *,
+.dark #printable-tax-invoice .invoice-table-header *,
+.dark #printable-tax-invoice .invoice-table-header th,
+.dark #printable-tax-invoice .invoice-footer-banner *,
+.dark-theme #printable-tax-invoice [class*="bg-[#0b2545]"] *,
+.dark-theme #printable-tax-invoice .invoice-header-badge *,
+.dark-theme #printable-tax-invoice .invoice-table-header *,
+.dark-theme #printable-tax-invoice .invoice-table-header th,
+.dark-theme #printable-tax-invoice .invoice-footer-banner *,
+#printable-tax-invoice .furnace-banner-box *,
+.dark #printable-tax-invoice .furnace-banner-box *,
+.dark-theme #printable-tax-invoice .furnace-banner-box * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* 6. Table Transparency over White Paper */
+#printable-purchase-order table,
+#printable-purchase-order tbody,
+#printable-purchase-order tr:not(.po-table-header),
+#printable-purchase-order td,
+.dark #printable-purchase-order table,
+.dark-theme #printable-purchase-order table,
+.dark #printable-purchase-order tbody,
+.dark-theme #printable-purchase-order tbody,
+.dark #printable-purchase-order tr:not(.po-table-header),
+.dark-theme #printable-purchase-order tr:not(.po-table-header),
+.dark #printable-purchase-order td,
+.dark-theme #printable-purchase-order td,
+#printable-tax-invoice table,
+#printable-tax-invoice tbody,
+#printable-tax-invoice tr:not(thead tr),
+#printable-tax-invoice td,
+.dark #printable-tax-invoice table,
+.dark-theme #printable-tax-invoice table,
+.dark #printable-tax-invoice tbody,
+.dark-theme #printable-tax-invoice tbody,
+.dark #printable-tax-invoice tr:not(thead tr),
+.dark-theme #printable-tax-invoice tr:not(thead tr),
+.dark #printable-tax-invoice td,
+.dark-theme #printable-tax-invoice td,
+#invoice-print-container table,
+#invoice-print-container tbody,
+#invoice-print-container tr:not(.table-header-row):not(thead tr),
+#invoice-print-container td,
+.dark #invoice-print-container table,
+.dark-theme #invoice-print-container table,
+.dark #invoice-print-container tbody,
+.dark-theme #invoice-print-container tbody,
+.dark #invoice-print-container tr:not(.table-header-row):not(thead tr),
+.dark-theme #invoice-print-container tr:not(.table-header-row):not(thead tr),
+.dark #invoice-print-container td,
+.dark-theme #invoice-print-container td {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* 7. Watermarks: Explicit 50% opacity, never invert or darken */
+.invoice-watermark-overlay,
+.po-watermark-overlay,
+.gate-slip-watermark,
+#printable-gate-slip .gate-slip-watermark,
+#printable-purchase-order .po-watermark-overlay,
+.dark #printable-purchase-order .po-watermark-overlay,
+.dark-theme #printable-purchase-order .po-watermark-overlay,
+#printable-tax-invoice .invoice-watermark-overlay,
+.dark #printable-tax-invoice .invoice-watermark-overlay,
+.dark-theme #printable-tax-invoice .invoice-watermark-overlay {
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+.invoice-watermark-overlay img,
+.po-watermark-overlay img,
+.gate-slip-watermark img,
+#printable-gate-slip .gate-slip-watermark img,
+#printable-purchase-order .po-watermark-overlay img,
+.dark #printable-purchase-order .po-watermark-overlay img,
+.dark-theme #printable-purchase-order .po-watermark-overlay img,
+#printable-tax-invoice .invoice-watermark-overlay img,
+.dark #printable-tax-invoice .invoice-watermark-overlay img,
+.dark-theme #printable-tax-invoice .invoice-watermark-overlay img {
+  opacity: 0.50 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+
 

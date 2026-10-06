@@ -4,6 +4,7 @@ import { Customer } from '../models/Customer.js';
 import { Part } from '../models/Part.js';
 import { GRN } from '../models/GRN.js';
 import { logAudit } from '../middleware/audit.js';
+import { generateNextHeatNumber } from './batchController.js';
 
 // 1. GET ALL JOB ORDERS
 export const getAll = async (req, res, next) => {
@@ -161,7 +162,7 @@ export const create = async (req, res, next) => {
       if (grn) heatNumber = grn.heatNumber;
     }
     if (!heatNumber) {
-      heatNumber = `HEAT-${Date.now().toString().slice(-6)}`;
+      heatNumber = await generateNextHeatNumber();
     }
 
     // Generate unique sequential Job Order Number (format: JO-00001)

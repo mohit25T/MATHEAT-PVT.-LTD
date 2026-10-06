@@ -633,6 +633,7 @@ export const recordCycle = async (req, res, next) => {
       cycle.parameters.soaking.actualSoakMinutes = Number(soakMins);
       cycle.parameters.soaking.actualCarbonPotential = Number(cpVal);
       cycle.parameters.quenching.actualQuenchTemp = Number(quenchVal);
+      cycle.parameters.quenching.transferTimeSeconds = Number(req.body.transferTimeSec || req.body.actualTransferTimeSeconds || 12);
       cycle.parameters.tempering.actualTemp = Number(tempVal);
       cycle.parameters.tempering.actualTimeMinutes = Number(tempMins);
       cycle.energyConsumedKwh = Number(energyVal);

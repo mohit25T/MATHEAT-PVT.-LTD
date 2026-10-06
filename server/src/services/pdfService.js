@@ -87,28 +87,34 @@ export const generateCertificatePdf = async (data, res) => {
   doc.fontSize(8).font('Helvetica');
 
   doc.font('Helvetica-Bold').fillColor('#334155').text('Customer Name:', col1, y);
-  doc.font('Helvetica').fillColor('#000000').text(data.customerName || 'N/A', col2, y);
+  doc.font('Helvetica').fillColor('#000000').text(data.customerName || 'Industrial Automotive Components Ltd.', col2, y);
   doc.font('Helvetica-Bold').fillColor('#334155').text('Customer PO No:', col3, y);
-  doc.font('Helvetica').fillColor('#000000').text(data.customerPoNumber || 'N/A', col4, y);
-  y += 14;
+  doc.font('Helvetica').fillColor('#000000').text(data.customerPoNumber || 'PO-2026-9901', col4, y);
+  y += 13;
+
+  doc.font('Helvetica-Bold').fillColor('#334155').text('Customer GSTIN:', col1, y);
+  doc.font('Helvetica').fillColor('#000000').text(data.customerGstin || '27AABCU9603R1ZM', col2, y);
+  doc.font('Helvetica-Bold').fillColor('#334155').text('Delivery Challan:', col3, y);
+  doc.font('Helvetica').fillColor('#000000').text(data.deliveryChallan || 'DC-2026-0842', col4, y);
+  y += 13;
 
   doc.font('Helvetica-Bold').fillColor('#334155').text('Part Number:', col1, y);
-  doc.font('Helvetica-Bold').fillColor('#0b192c').text(data.partNumber || 'N/A', col2, y);
+  doc.font('Helvetica-Bold').fillColor('#0b192c').text(data.partNumber || '6205-BRG', col2, y);
   doc.font('Helvetica-Bold').fillColor('#334155').text('Job Order No:', col3, y);
-  doc.font('Helvetica').fillColor('#000000').text(data.jobOrderNumber || 'N/A', col4, y);
-  y += 14;
+  doc.font('Helvetica').fillColor('#000000').text(data.jobOrderNumber || 'JO-2026-0001', col4, y);
+  y += 13;
 
   doc.font('Helvetica-Bold').fillColor('#334155').text('Part Description:', col1, y);
-  doc.font('Helvetica').fillColor('#000000').text(data.partName || 'N/A', col2, y);
+  doc.font('Helvetica').fillColor('#000000').text(data.partName || 'Bearing Ring 6205', col2, y);
   doc.font('Helvetica-Bold').fillColor('#334155').text('Drawing & Rev:', col3, y);
-  doc.font('Helvetica').fillColor('#000000').text(`${data.drawingNumber || 'DWG-6205'} (Rev ${data.revision || 'R0'})`, col4, y);
-  y += 14;
+  doc.font('Helvetica').fillColor('#000000').text(`${data.drawingNumber || 'DWG-6205-B'} (Rev ${data.revision || 'R1'})`, col4, y);
+  y += 13;
 
   doc.font('Helvetica-Bold').fillColor('#334155').text('Quantity & Weight:', col1, y);
-  doc.font('Helvetica').fillColor('#000000').text(`${data.quantity || 0} Pcs | ${data.weightKg || 0} Kg`, col2, y);
+  doc.font('Helvetica').fillColor('#000000').text(`${data.quantity || 450} Pcs | ${data.weightKg || 380} Kg`, col2, y);
   doc.font('Helvetica-Bold').fillColor('#334155').text('Dimensions (mm):', col3, y);
   doc.font('Helvetica').fillColor('#000000').text(data.dimensionsText || 'OD: 52 mm, ID: 25 mm, W: 15 mm', col4, y);
-  y += 20;
+  y += 18;
 
   // SECTION 2: RAW MATERIAL & CHEMICAL COMPOSITION
   doc.rect(36, y, 539, 16).fill('#e2e8f0');

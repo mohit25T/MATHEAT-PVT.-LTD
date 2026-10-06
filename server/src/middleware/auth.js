@@ -36,7 +36,7 @@ export const authorize = (...allowedRoles) => {
       return res.status(401).json({ success: false, message: 'User not authenticated.' });
     }
 
-    if (req.user.role === 'SUPER_ADMIN' || allowedRoles.includes(req.user.role)) {
+    if (req.user.role === 'SUPER_ADMIN' || req.user.role === 'ADMIN' || allowedRoles.includes(req.user.role)) {
       return next();
     }
 

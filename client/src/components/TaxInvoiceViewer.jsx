@@ -4,6 +4,8 @@ import api from '../api/client';
 import {
   Printer,
   Download,
+  Share2,
+  X,
   ShieldCheck,
   User,
   MapPin,
@@ -23,144 +25,76 @@ import {
   FileCheck
 } from 'lucide-react';
 
-export const TaxInvoiceViewer = () => {
+import { normalizeInvoiceData } from '../utils/normalizeInvoiceData';
+
+export const TaxInvoiceViewer = ({ invoice: propInvoice, isOpen, onClose }) => {
+  const isModal = isOpen !== undefined;
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [liveInvoices, setLiveInvoices] = useState([]);
+  const [selectedInvoice, setSelectedInvoice] = useState(propInvoice || null);
+  const [loading, setLoading] = useState(false);
 
-  const invoiceData = {
-    invoiceNo: 'MH/25-26/0089',
-    invoiceDate: '17 Sep 2026',
-    placeOfSupply: 'Gujarat (24)',
-    reverseCharge: 'No',
+  useEffect(() => {
+    if (propInvoice) {
+      setSelectedInvoice(propInvoice);
+    }
+  }, [propInvoice]);
 
-    // Bill To
-    billTo: {
-      name: 'DURGA MANUFACTURES',
-      address: 'Plot No. A5, Sapar Main Road, Opp. Mahindra Gear, Decora Cement Campus, Shapar Veraval, Rajkot – 360024, Gujarat, India',
-      gstin: '24AHMPT0206E1ZO',
-      contact: '+91 98258 70821',
-      email: 'info@durgamanufactures.com'
-    },
+  useEffect(() => {
+    if (!isModal) {
+      loadInvoices();
+    }
+  }, [isModal]);
 
-    // Ship To
-    shipTo: {
-      name: 'DURGA MANUFACTURES',
-      address: 'Plot No. A5, Sapar Main Road, Opp. Mahindra Gear, Decora Cement Campus, Shapar Veraval, Rajkot – 360024, Gujarat, India'
-    },
+  // Keyboard shortcut: Escape to close modal
+  useEffect(() => {
+    if (!isModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) onClose?.();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModal, isOpen, onClose]);
 
-    // Transport & Order Details
-    transport: {
-      customerPoNo: 'PO/DM/2026/145',
-      jobOrderNo: 'JO/26/0178',
-      ewayBillNo: '612183521124',
-      lrNo: 'GJ03BU4179',
-      transporter: 'Shree Roadlines',
-      freight: 'Paid',
-      paymentTerms: '30 Days',
-      dueDate: '17 Oct 2026'
-    },
-
-    // Items
-    items: [
-      {
-        srNo: 1,
-        description: 'Rotor (Stamping)',
-        spec: '140×70 = 110MM × 120 STATOR',
-        partNo: 'HT-140-120',
-        process: 'Hardening + Tempering',
-        batchNo: 'B-2026-0178',
-        heatNo: 'H45872',
-        qtyKg: 936.200,
-        rate: 68.50,
-        gstRate: '18%',
-        amount: 64129.70
-      },
-      {
-        srNo: 2,
-        description: 'Rotor (Stamping)',
-        spec: '140×70 = 132 ROTOR LOOSE',
-        partNo: 'HT-140-132',
-        process: 'Hardening + Tempering',
-        batchNo: 'B-2026-0179',
-        heatNo: 'H45873',
-        qtyKg: 237.600,
-        rate: 68.50,
-        gstRate: '18%',
-        amount: 16275.60
-      },
-      {
-        srNo: 3,
-        description: 'Gear Component',
-        spec: '',
-        partNo: 'HT-GR-450',
-        process: 'Carburizing + Hardening',
-        batchNo: 'B-2026-0180',
-        heatNo: 'H45874',
-        qtyKg: 150.000,
-        rate: 72.00,
-        gstRate: '18%',
-        amount: 10800.00
-      },
-      {
-        srNo: 4,
-        description: 'Shaft',
-        spec: '',
-        partNo: 'HT-SH-320',
-        process: 'Induction Hardening',
-        batchNo: 'B-2026-0181',
-        heatNo: 'H45875',
-        qtyKg: 85.000,
-        rate: 75.00,
-        gstRate: '18%',
-        amount: 6375.00
-      },
-      {
-        srNo: 5,
-        description: 'Misc. Components',
-        spec: '(As per PO)',
-        partNo: 'HT-MC-001',
-        process: 'Stress Relieving',
-        batchNo: 'B-2026-0182',
-        heatNo: 'H45876',
-        qtyKg: 200.000,
-        rate: 60.00,
-        gstRate: '18%',
-        amount: 12000.00
+  const loadInvoices = async () => {
+    setLoading(true);
+    try {
+      const res = await api.commercial.getInvoices().catch(() => []);
+      const list = Array.isArray(res) ? res : (res?.invoices || []);
+      setLiveInvoices(list);
+      if (propInvoice) {
+        setSelectedInvoice(propInvoice);
+      } else if (list.length > 0 && !selectedInvoice) {
+        setSelectedInvoice(list[0]);
       }
-    ],
-
-    totalQtyKg: '1,608.800',
-    subTotal: 109580.30,
-    cgst: 9862.23,
-    sgst: 9862.23,
-    roundOff: -0.76,
-    grandTotal: 129304.00,
-    amountInWords: 'Rupees One Lakh Twenty Nine Thousand Three Hundred Four Only',
-
-    bank: {
-      name: 'ICICI Bank Ltd.',
-      acNo: '072805503144',
-      ifsc: 'ICIC0000728',
-      branch: 'Gondal Road, Rajkot'
+    } catch (err) {
+      console.warn('[TAX INVOICE] Error loading invoices:', err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Normalized invoice data - guarantees preview template structure for any invoice or fallback
+  const invoiceData = normalizeInvoiceData(selectedInvoice || propInvoice);
+
   useEffect(() => {
-    // Generate real, scan-compliant GST QR Code
-    const qrText = `GST-INVOICE|MATHEAT|MH/25-26/0089|2026-09-17|129304.00|24AHMPT0206E1ZO|24AABCM8920C1Z4`;
-    QRCode.toDataURL(qrText, { width: 140, margin: 1, errorCorrectionLevel: 'M' })
-      .then((url) => setQrCodeUrl(url))
-      .catch((err) => console.error('QR generation error:', err));
-  }, []);
+    if (invoiceData) {
+      // Generate real, scan-compliant GST QR Code
+      const qrText = `GST-INVOICE|MATHEAT|${invoiceData.invoiceNo}|${invoiceData.invoiceDate}|${invoiceData.grandTotal}|${invoiceData.billTo?.gstin || ''}|27AAACS1900K1Z9`;
+      QRCode.toDataURL(qrText, { width: 140, margin: 1, errorCorrectionLevel: 'M' })
+        .then((url) => setQrCodeUrl(url))
+        .catch((err) => console.error('QR generation error:', err));
+    }
+  }, [invoiceData.invoiceNo, invoiceData.grandTotal, invoiceData.billTo?.gstin]);
 
   const getCleanInvoiceFileName = () => {
-    // Sanitize for file systems (replace '/' or invalid characters with '-')
-    return (invoiceData.invoiceNo || 'MH-25-26-0089').replace(/[\/\\?%*:|"<>]/g, '-');
+    return (invoiceData?.invoiceNo || 'MH-INVOICE').replace(/[\/\\?%*:|"<>]/g, '-');
   };
 
   const handlePrint = () => {
+    if (!invoiceData) return;
     const originalTitle = document.title;
     const fileName = getCleanInvoiceFileName();
-    // Browsers default the 'Save as PDF' filename to document.title
     document.title = fileName;
     window.print();
     setTimeout(() => {
@@ -168,7 +102,30 @@ export const TaxInvoiceViewer = () => {
     }, 1500);
   };
 
+  const handleWhatsAppShare = () => {
+    const invNo = invoiceData.invoiceNo;
+    const invDate = invoiceData.invoiceDate;
+    const custName = invoiceData.billTo?.name || 'Customer';
+    const gTotal = invoiceData.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+    const text = `*TAX INVOICE - MATHEAT PVT. LTD.*\n` +
+      `Invoice No: ${invNo}\n` +
+      `Date: ${invDate}\n` +
+      `Billed To: ${custName}\n` +
+      `Grand Total: ₹${gTotal}\n` +
+      `Place of Supply: ${invoiceData.placeOfSupply}\n\n` +
+      `Thank you for your business with MATHEAT! Support: +91 98258 70821 / purchase@matheat.in`;
+
+    const rawPhone = (invoiceData.billTo?.contact || '').replace(/\D/g, '');
+    const cleanPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+    const url = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+      : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   const handleDownloadPdf = async () => {
+    if (!invoiceData) return;
     const cleanName = getCleanInvoiceFileName();
     const fileName = `${cleanName}.pdf`;
     const invoiceUrl = api.documents.getInvoiceUrl(cleanName);
@@ -185,49 +142,20 @@ export const TaxInvoiceViewer = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      console.error('Direct download failed, falling back to open:', err);
-      window.open(invoiceUrl, '_blank');
+      console.warn('Direct download failed, falling back to print dialog:', err);
+      handlePrint();
     }
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Top Action Ribbon (Hidden During Print) */}
-      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-300 p-4 rounded-xl shadow-sm">
-        <div>
-          <h2 className="text-base font-black text-black flex items-center gap-2">
-            <FileCheck className="h-5 w-5 text-blue-600" />
-            Official MATHEAT Tax Invoice (Exact Live Template)
-          </h2>
-          <p className="text-xs text-black mt-0.5 font-medium">
-            Invoice No: <span className="font-bold text-orange-600">{invoiceData.invoiceNo}</span> &bull; 
-            Client: <span className="font-bold text-black">{invoiceData.billTo.name}</span> &bull; 
-            GST Ready with Scannable Verification
-          </p>
-        </div>
+  if (isModal && !isOpen) return null;
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleDownloadPdf}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
-          >
-            <Download className="h-4 w-4" /> Download Official PDF
-          </button>
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
-          >
-            <Printer className="h-4 w-4" /> Print Tax Invoice
-          </button>
-        </div>
-      </div>
-
-      {/* =======================================================================
-          PRINTABLE TAX INVOICE SHEET (Pixel-Perfect Match to Image - Strictly 1 Page)
-          ======================================================================= */}
+  // Single source of truth for the printable invoice sheet
+  const invoiceSheetContent = (
+    <div className="invoice-sheet-wrapper w-full overflow-x-auto print:overflow-visible">
       <div
         id="printable-tax-invoice"
-        className="printable-certificate relative bg-[#f8fafc] text-black shadow-2xl mx-auto border border-slate-300 font-sans max-w-[850px] p-2.5 sm:p-3 space-y-1 sm:space-y-1.5 overflow-hidden"
+        className="printable-certificate relative bg-white text-slate-900 shadow-2xl mx-auto border border-slate-300 font-sans max-w-[850px] min-w-[720px] p-2.5 sm:p-3 flex flex-col justify-between min-h-[1050px] space-y-1 sm:space-y-1.5 overflow-hidden"
+        style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
       >
         {/* Official MATHEAT Transparent Background Watermark */}
         <div
@@ -237,7 +165,8 @@ export const TaxInvoiceViewer = () => {
           <img
             src="/matheat_logo.png"
             alt="MATHEAT Watermark"
-            className="w-[360px] max-w-[60%] object-contain opacity-10 pointer-events-none"
+            className="w-[420px] max-w-[70%] object-contain opacity-50 pointer-events-none"
+            style={{ opacity: 0.5 }}
           />
         </div>
 
@@ -293,7 +222,7 @@ export const TaxInvoiceViewer = () => {
             {/* Real Industrial Steel Heating Photo */}
             <div className="relative w-full h-full bg-slate-950 overflow-hidden" style={{ height: '82px', maxHeight: '82px' }}>
               <img
-                src="/furnace_banner.jpg"
+                src="/furnace_banner_wide.jpg"
                 alt="Industrial Furnace Heat Treatment"
                 className="w-full h-full object-cover object-center opacity-85"
                 style={{ width: '100%', height: '82px', maxHeight: '82px', objectFit: 'cover' }}
@@ -320,20 +249,22 @@ export const TaxInvoiceViewer = () => {
         </div>
 
         {/* 2. TAX INVOICE BAR & INVOICE METADATA */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-white">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-transparent">
           
           {/* Dark Navy Block: TAX INVOICE with angled diagonal edge */}
           <div
-            className="w-full sm:w-[240px] bg-[#0b2545] text-white py-1.5 px-4 relative rounded-l-md"
+            className="invoice-header-badge w-full sm:w-[240px] bg-[#0b2545] text-white py-1.5 px-4 relative rounded-l-md"
             style={{
-              clipPath: 'polygon(0% 0%, 92% 0%, 100% 100%, 0% 100%)'
+              clipPath: 'polygon(0% 0%, 92% 0%, 100% 100%, 0% 100%)',
+              backgroundColor: '#0b2545',
+              color: '#ffffff'
             }}
           >
-            <h1 className="text-xl font-black tracking-wider uppercase leading-tight text-white">
+            <h1 className="text-xl font-black tracking-wider uppercase leading-tight text-white" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>
               TAX INVOICE
             </h1>
-            <div className="text-[8.5px] font-bold text-slate-200 tracking-widest uppercase mt-0.5">
-              ORIGINAL FOR RECIPIENT
+            <div className="text-[8.5px] font-bold text-slate-200 tracking-widest uppercase mt-0.5" style={{ color: '#e2e8f0', WebkitTextFillColor: '#e2e8f0' }}>
+              <span className="text-white">ORIGINAL FOR RECIPIENT</span>
             </div>
           </div>
 
@@ -362,7 +293,7 @@ export const TaxInvoiceViewer = () => {
             {qrCodeUrl ? (
               <img src={qrCodeUrl} alt="GST Invoice Verification QR" className="w-12 h-12 object-contain" />
             ) : (
-              <div className="w-12 h-12 border border-slate-300 bg-white flex items-center justify-center">
+              <div className="w-12 h-12 border border-slate-300 bg-transparent flex items-center justify-center">
                 <span className="text-[7px] font-mono">QR CODE</span>
               </div>
             )}
@@ -372,185 +303,221 @@ export const TaxInvoiceViewer = () => {
           </div>
         </div>
 
-        {/* 3. PARTY & LOGISTICS SECTION (3 Rounded Cards with Light Gray Fill) */}
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
+        {/* 3. PARTY & LOGISTICS SECTION (3 Rounded Cards with Tight, Harmonious Padding) */}
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-1.5 text-xs">
           
-          {/* Card 1: BILL TO */}
-          <div className="sm:col-span-4 p-2.5 bg-[#f4f7fa] border border-[#e2e8f0] rounded-lg flex flex-col justify-between space-y-1 shadow-sm">
+          {/* Card 1: BILL TO (BUYER) */}
+          <div className="sm:col-span-4 p-2 bg-transparent border border-slate-300 rounded-lg flex flex-col justify-between space-y-1 shadow-xs">
             <div>
-              <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-black pb-1 border-b border-slate-200">
-                <div className="h-4 w-4 rounded-full bg-orange-600 text-white flex items-center justify-center text-[9px]">
+              <div className="flex items-center gap-1.5 text-[10.5px] font-black uppercase tracking-wider text-black pb-0.5 border-b border-slate-200">
+                <div className="h-4 w-4 rounded-full bg-orange-600 text-white flex items-center justify-center text-[9px] shrink-0">
                   <User className="h-2.5 w-2.5" />
                 </div>
-                <span>BILL TO</span>
+                <span>BILL TO (BUYER)</span>
               </div>
-              <div className="font-black text-xs text-black mt-1 leading-tight">
+              <div className="font-black text-[11px] text-black mt-1 leading-tight">
                 {invoiceData.billTo.name}
               </div>
-              <p className="text-[10px] text-slate-800 mt-0.5 leading-tight">
+              <p className="text-[9.5px] text-slate-800 mt-0.5 leading-tight">
                 {invoiceData.billTo.address}
               </p>
             </div>
-            <div className="text-[10px] space-y-0.5 pt-1 border-t border-slate-200">
-              <div><strong className="text-black">GSTIN :</strong> <span className="font-mono font-bold text-black">{invoiceData.billTo.gstin}</span></div>
-              <div><strong className="text-black">Contact :</strong> <span className="text-black font-medium">{invoiceData.billTo.contact}</span></div>
-              <div><strong className="text-black">Email :</strong> <span className="text-black font-medium">{invoiceData.billTo.email}</span></div>
+            <div className="text-[9px] space-y-0.5 pt-1 border-t border-slate-200">
+              <div className="flex justify-between"><strong className="text-slate-700">GSTIN :</strong> <span className="font-mono font-bold text-black">{invoiceData.billTo.gstin}</span></div>
+              <div className="flex justify-between"><strong className="text-slate-700">Contact :</strong> <span className="text-black font-medium">{invoiceData.billTo.contact}</span></div>
+              <div className="flex justify-between"><strong className="text-slate-700">Email :</strong> <span className="text-black font-medium truncate max-w-[130px]">{invoiceData.billTo.email}</span></div>
             </div>
           </div>
 
-          {/* Card 2: SHIP TO (IF DIFFERENT) */}
-          <div className="sm:col-span-4 p-2.5 bg-[#f4f7fa] border border-[#e2e8f0] rounded-lg flex flex-col justify-start space-y-1 shadow-sm">
-            <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-black pb-1 border-b border-slate-200">
-              <div className="h-4 w-4 rounded-full bg-orange-600 text-white flex items-center justify-center text-[9px]">
-                <MapPin className="h-2.5 w-2.5" />
+          {/* Card 2: SHIP TO (CONSIGNEE) */}
+          <div className="sm:col-span-4 p-2 bg-transparent border border-slate-300 rounded-lg flex flex-col justify-between space-y-1 shadow-xs">
+            <div>
+              <div className="flex items-center gap-1.5 text-[10.5px] font-black uppercase tracking-wider text-black pb-0.5 border-b border-slate-200">
+                <div className="h-4 w-4 rounded-full bg-orange-600 text-white flex items-center justify-center text-[9px] shrink-0">
+                  <MapPin className="h-2.5 w-2.5" />
+                </div>
+                <span>SHIP TO <span className="text-[8px] font-normal text-slate-600">(CONSIGNEE)</span></span>
               </div>
-              <span>SHIP TO <span className="text-[8.5px] font-normal text-slate-600">(IF DIFFERENT)</span></span>
+              <div className="font-black text-[11px] text-black mt-1 leading-tight">
+                {invoiceData.shipTo.name}
+              </div>
+              <p className="text-[9.5px] text-slate-800 mt-0.5 leading-tight">
+                {invoiceData.shipTo.address}
+              </p>
             </div>
-            <div className="font-black text-xs text-black mt-1 leading-tight">
-              {invoiceData.shipTo.name}
+            <div className="text-[9px] text-slate-600 italic pt-1 border-t border-slate-200 leading-tight">
+              Dispatch from Works: Plot No. 12, Sector 5, Industrial Area
             </div>
-            <p className="text-[10px] text-slate-800 mt-0.5 leading-tight">
-              {invoiceData.shipTo.address}
-            </p>
           </div>
 
           {/* Card 3: TRANSPORT & ORDER DETAILS */}
-          <div className="sm:col-span-4 p-2.5 bg-[#f4f7fa] border border-[#e2e8f0] rounded-lg space-y-0.5 text-[10px] shadow-sm">
+          <div className="sm:col-span-4 p-2 bg-transparent border border-slate-300 rounded-lg space-y-0.5 text-[9px] shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-medium flex items-center gap-1"><Calendar className="h-2.5 w-2.5 text-blue-800" /> Customer PO No.</span>
-              <strong className="font-mono text-black font-bold">{invoiceData.transport.customerPoNo}</strong>
+              <span className="text-slate-700 font-medium flex items-center gap-1"><FileText className="h-2.5 w-2.5 text-blue-800 shrink-0" /> Cust. Challan No.</span>
+              <strong className="font-mono text-black font-bold">{invoiceData.transport.customerChallanNo || invoiceData.transport.challanNo || invoiceData.transport.customerPoNo || 'DC-2026-4401'}</strong>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-medium flex items-center gap-1"><ClipboardList className="h-2.5 w-2.5 text-blue-800" /> Job Order No.</span>
+              <span className="text-slate-700 font-medium flex items-center gap-1"><ClipboardList className="h-2.5 w-2.5 text-blue-800 shrink-0" /> Job Order No.</span>
               <strong className="font-mono text-black font-bold">{invoiceData.transport.jobOrderNo}</strong>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-medium flex items-center gap-1"><FileText className="h-2.5 w-2.5 text-blue-800" /> E-Way Bill No.</span>
+              <span className="text-slate-700 font-medium flex items-center gap-1"><FileText className="h-2.5 w-2.5 text-blue-800 shrink-0" /> E-Way Bill No.</span>
               <strong className="font-mono text-black font-bold">{invoiceData.transport.ewayBillNo}</strong>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-medium flex items-center gap-1"><Truck className="h-2.5 w-2.5 text-blue-800" /> LR No.</span>
+              <span className="text-slate-700 font-medium flex items-center gap-1"><Truck className="h-2.5 w-2.5 text-blue-800 shrink-0" /> LR No.</span>
               <strong className="font-mono text-black font-bold">{invoiceData.transport.lrNo}</strong>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-medium flex items-center gap-1"><Truck className="h-2.5 w-2.5 text-blue-800" /> Transporter</span>
-              <strong className="text-black font-bold">{invoiceData.transport.transporter}</strong>
+              <span className="text-slate-700 font-medium flex items-center gap-1"><Truck className="h-2.5 w-2.5 text-blue-800 shrink-0" /> Transporter</span>
+              <strong className="text-black font-bold truncate max-w-[110px] text-right">{invoiceData.transport.transporter}</strong>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-medium flex items-center gap-1"><Package className="h-2.5 w-2.5 text-blue-800" /> Freight</span>
+              <span className="text-slate-700 font-medium flex items-center gap-1"><Package className="h-2.5 w-2.5 text-blue-800 shrink-0" /> Freight</span>
               <strong className="text-black font-bold">{invoiceData.transport.freight}</strong>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-medium flex items-center gap-1"><CreditCard className="h-2.5 w-2.5 text-blue-800" /> Payment Terms</span>
+              <span className="text-slate-700 font-medium flex items-center gap-1"><CreditCard className="h-2.5 w-2.5 text-blue-800 shrink-0" /> Payment Terms</span>
               <strong className="text-black font-bold">{invoiceData.transport.paymentTerms}</strong>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-medium flex items-center gap-1"><Clock className="h-2.5 w-2.5 text-blue-800" /> Due Date</span>
+              <span className="text-slate-700 font-medium flex items-center gap-1"><Clock className="h-2.5 w-2.5 text-blue-800 shrink-0" /> Due Date</span>
               <strong className="text-black font-bold">{invoiceData.transport.dueDate}</strong>
             </div>
           </div>
         </div>
 
-        {/* 4. ITEMS TABLE (Deep Navy Header, Clean Grid, High Contrast) */}
-        <div className="rounded-md overflow-hidden border border-slate-300">
-          <table className="w-full text-left text-xs border-collapse">
+        {/* 4. ITEMS TABLE (Prominent Central Ledger with Continuous Column Dividers) */}
+        <div className="invoice-table-container rounded-md overflow-hidden border border-slate-300 flex flex-col flex-1 min-h-[150px] bg-transparent">
+          <table className="w-full table-fixed text-left text-xs border-collapse h-full flex-1 bg-transparent">
+            <colgroup>
+              <col style={{ width: '4%' }} />
+              <col style={{ width: '24%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '8.5%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '4.5%' }} />
+              <col style={{ width: '9%' }} />
+            </colgroup>
             <thead>
-              <tr className="bg-[#0b2545] text-white text-[9.5px] font-black uppercase tracking-wider">
-                <th className="p-1.5 text-center border-r border-slate-700 w-8">Sr.<br />No.</th>
-                <th className="p-1.5 border-r border-slate-700">Description</th>
-                <th className="p-1.5 text-center border-r border-slate-700">Part No. /<br />Specification</th>
-                <th className="p-1.5 border-r border-slate-700">Process</th>
-                <th className="p-1.5 text-center border-r border-slate-700">Batch No.</th>
-                <th className="p-1.5 text-center border-r border-slate-700">Heat No.</th>
-                <th className="p-1.5 text-right border-r border-slate-700">Qty<br />(Kg)</th>
-                <th className="p-1.5 text-right border-r border-slate-700">Rate<br />(₹/Kg)</th>
-                <th className="p-1.5 text-center border-r border-slate-700">GST<br />(%)</th>
-                <th className="p-1.5 text-right">Amount<br />(₹)</th>
+              <tr className="invoice-table-header bg-[#0b2545] text-white text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: '#0b2545', color: '#ffffff' }}>
+                <th className="p-1 text-center border-r border-slate-700 overflow-hidden leading-tight">Sr.<br />No.</th>
+                <th className="p-1 border-r border-slate-700 overflow-hidden leading-tight">Description of Goods / Job Work</th>
+                <th className="p-1 text-center border-r border-slate-700 overflow-hidden leading-tight">Part No. /<br />Specification</th>
+                <th className="p-1 border-r border-slate-700 overflow-hidden leading-tight">Process</th>
+                <th className="p-1 text-center border-r border-slate-700 overflow-hidden leading-tight">Batch No.</th>
+                <th className="p-1 text-center border-r border-slate-700 overflow-hidden leading-tight">Heat No.</th>
+                <th className="p-1 text-right border-r border-slate-700 overflow-hidden leading-tight">Qty<br />(Kg)</th>
+                <th className="p-1 text-right border-r border-slate-700 overflow-hidden leading-tight">Rate<br />(₹/Kg)</th>
+                <th className="p-1 text-center border-r border-slate-700 overflow-hidden leading-tight">GST<br />(%)</th>
+                <th className="p-1 text-right overflow-hidden leading-tight">Amount<br />(₹)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 text-[10.5px] font-medium bg-white">
+            <tbody className="text-[9.5px] font-medium bg-transparent">
               {invoiceData.items.map((row) => (
-                <tr key={row.srNo} className="hover:bg-slate-50">
-                  <td className="p-1.5 text-center border-r border-slate-200 font-bold text-black">{row.srNo}</td>
-                  <td className="p-1.5 border-r border-slate-200">
-                    <div className="font-bold text-black text-[11px] leading-tight">{row.description}</div>
-                    {row.spec && <div className="text-[9px] text-slate-500 font-sans leading-tight">{row.spec}</div>}
+                <tr key={row.srNo} className="border-b border-slate-200 bg-transparent hover:bg-slate-50/40">
+                  <td className="p-1 text-center border-r border-slate-200 font-bold text-black overflow-hidden">{row.srNo}</td>
+                  <td className="p-1 border-r border-slate-200 overflow-hidden">
+                    <div className="font-bold text-black text-[9.5px] leading-tight break-words">{row.description}</div>
+                    {row.spec && <div className="text-[8px] text-slate-500 font-sans leading-tight mt-0.5 break-words">{row.spec}</div>}
                   </td>
-                  <td className="p-1.5 text-center border-r border-slate-200 font-mono font-bold text-black">{row.partNo}</td>
-                  <td className="p-1.5 border-r border-slate-200 text-black font-semibold">{row.process}</td>
-                  <td className="p-1.5 text-center border-r border-slate-200 font-mono font-bold text-black">{row.batchNo}</td>
-                  <td className="p-1.5 text-center border-r border-slate-200 font-mono font-bold text-black">{row.heatNo}</td>
-                  <td className="p-1.5 text-right border-r border-slate-200 font-mono font-bold text-black">{row.qtyKg.toFixed(3)}</td>
-                  <td className="p-1.5 text-right border-r border-slate-200 font-mono text-black">{row.rate.toFixed(2)}</td>
-                  <td className="p-1.5 text-center border-r border-slate-200 font-mono text-black">{row.gstRate}</td>
-                  <td className="p-1.5 text-right font-mono font-black text-black">{row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td className="p-1 text-center border-r border-slate-200 font-mono font-bold text-black text-[8.5px] break-all overflow-hidden">{row.partNo}</td>
+                  <td className="p-1 border-r border-slate-200 text-black font-semibold text-[8.5px] break-words leading-tight overflow-hidden">{row.process}</td>
+                  <td className="p-1 text-center border-r border-slate-200 font-mono font-bold text-black text-[8px] tracking-tight break-all overflow-hidden">{row.batchNo}</td>
+                  <td className="p-1 text-center border-r border-slate-200 font-mono font-bold text-black text-[8px] break-all overflow-hidden">{row.heatNo}</td>
+                  <td className="p-1 text-right border-r border-slate-200 font-mono font-bold text-black text-[9px] overflow-hidden">{row.qtyKg.toFixed(3)}</td>
+                  <td className="p-1 text-right border-r border-slate-200 font-mono text-black text-[8.5px] overflow-hidden">{row.rate.toFixed(2)}</td>
+                  <td className="p-1 text-center border-r border-slate-200 font-mono text-black text-[8.5px] overflow-hidden">{row.gstRate}</td>
+                  <td className="p-1 text-right font-mono font-black text-black text-[9.5px] overflow-hidden">{row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 </tr>
               ))}
 
-              {/* Total Quantity Row */}
-              <tr className="bg-white border-t-2 border-slate-300 font-black text-xs text-black">
-                <td colSpan={6} className="p-1.5 text-right pr-3 uppercase tracking-wider border-r border-slate-200 text-[10.5px]">
-                  Total Quantity (Kg)
+              {/* Continuous vertical dividers through remaining vertical space (as seen in industrial bill) */}
+              <tr className="h-full">
+                <td className="border-r border-slate-200 p-0 overflow-hidden">&nbsp;</td>
+                <td className="border-r border-slate-200 p-0 overflow-hidden"></td>
+                <td className="border-r border-slate-200 p-0 overflow-hidden"></td>
+                <td className="border-r border-slate-200 p-0 overflow-hidden"></td>
+                <td className="border-r border-slate-200 p-0 overflow-hidden"></td>
+                <td className="border-r border-slate-200 p-0 overflow-hidden"></td>
+                <td className="border-r border-slate-200 p-0 overflow-hidden"></td>
+                <td className="border-r border-slate-200 p-0 overflow-hidden"></td>
+                <td className="border-r border-slate-200 p-0 overflow-hidden"></td>
+                <td className="p-0 overflow-hidden"></td>
+              </tr>
+
+              {/* Connected Ledger Summary / Subtotal Row */}
+              <tr className="invoice-total-row bg-transparent border-t border-slate-300 font-black text-xs text-black">
+                <td colSpan={6} className="px-2 py-1 text-right uppercase tracking-wider border-r border-slate-300 font-bold text-[9px] text-slate-700 overflow-hidden">
+                  Total Weight / Quantity (Kg)
                 </td>
-                <td className="p-1.5 text-right font-mono font-black text-black border-r border-slate-200 text-[11px]">
+                <td className="px-1 py-1 text-right font-mono font-black text-black border-r border-slate-300 text-[9.5px] overflow-hidden">
                   {invoiceData.totalQtyKg}
                 </td>
-                <td colSpan={3} className="p-1.5 bg-white"></td>
+                <td colSpan={2} className="px-1 py-1 text-right uppercase tracking-wider border-r border-slate-300 font-bold text-[9px] text-slate-700 overflow-hidden">
+                  Sub Total
+                </td>
+                <td className="px-1 py-1 text-right font-mono font-black text-black text-[10px] overflow-hidden">
+                  ₹{invoiceData.subTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* 5. PROCESS SUMMARY & VALUE PILLARS (4 Separate Rounded Cards) */}
+        {/* 5. PROCESS SUMMARY & VALUE PILLARS (4 Compact Rounded Cards) */}
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-1.5 text-xs">
           
           {/* Process Summary Card */}
-          <div className="sm:col-span-5 p-1.5 bg-[#f4f7fa] border border-[#e2e8f0] rounded-md flex items-start gap-1.5 shadow-sm">
-            <div className="h-5 w-5 rounded bg-orange-600 text-white flex items-center justify-center shrink-0 text-xs font-bold shadow-sm">
-              <FileText className="h-3 w-3" />
+          <div className="sm:col-span-5 p-1.5 bg-transparent border border-slate-300 rounded-md flex items-start gap-1.5 shadow-xs">
+            <div className="h-4 w-4 rounded bg-orange-600 text-white flex items-center justify-center shrink-0 text-[9px] font-bold shadow-xs">
+              <FileText className="h-2.5 w-2.5" />
             </div>
             <div>
-              <div className="font-black text-[9.5px] uppercase text-black tracking-wider">PROCESS SUMMARY</div>
-              <p className="text-[8.5px] text-slate-800 leading-tight mt-0.5">
+              <div className="font-black text-[9px] uppercase text-black tracking-wider leading-none">PROCESS SUMMARY</div>
+              <p className="text-[8px] text-slate-800 leading-tight mt-0.5">
                 Heat Treatment as per customer specification & applicable standards. Material processed in controlled atmosphere.
               </p>
             </div>
           </div>
 
           {/* Traceability Card */}
-          <div className="sm:col-span-3 p-1.5 bg-[#f4f7fa] border border-[#e2e8f0] rounded-md flex items-center gap-1.5 shadow-sm">
-            <div className="h-5 w-5 rounded bg-[#0b2545] text-white flex items-center justify-center shrink-0 shadow-sm">
-              <Layers className="h-3 w-3" />
+          <div className="sm:col-span-3 p-1.5 bg-transparent border border-slate-300 rounded-md flex items-center gap-1.5 shadow-xs">
+            <div className="h-4 w-4 rounded bg-[#0b2545] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Layers className="h-2.5 w-2.5" />
             </div>
             <div>
-              <div className="font-black text-[9.5px] uppercase text-black tracking-wider">TRACEABILITY</div>
-              <p className="text-[9px] text-black font-bold leading-tight mt-0.5">
+              <div className="font-black text-[9px] uppercase text-black tracking-wider leading-none">TRACEABILITY</div>
+              <p className="text-[8.5px] text-black font-bold leading-tight mt-0.5">
                 Heat No. &rarr; Batch &rarr; Invoice
               </p>
             </div>
           </div>
 
           {/* Quality Assured Card */}
-          <div className="sm:col-span-2 p-1.5 bg-[#f4f7fa] border border-[#e2e8f0] rounded-md flex items-center gap-1 shadow-sm">
-            <div className="h-5 w-5 rounded bg-[#0b2545] text-white flex items-center justify-center shrink-0 shadow-sm">
-              <ShieldCheck className="h-3 w-3" />
+          <div className="sm:col-span-2 p-1.5 bg-transparent border border-slate-300 rounded-md flex items-center gap-1 shadow-xs">
+            <div className="h-4 w-4 rounded bg-[#0b2545] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <ShieldCheck className="h-2.5 w-2.5" />
             </div>
             <div>
-              <div className="font-black text-[9px] uppercase text-black tracking-wider">QUALITY ASSURED</div>
-              <p className="text-[8.5px] text-slate-800 font-bold leading-tight mt-0.5">
+              <div className="font-black text-[8.5px] uppercase text-black tracking-wider leading-none">QUALITY ASSURED</div>
+              <p className="text-[8px] text-slate-800 font-bold leading-tight mt-0.5">
                 Controlled & Tested
               </p>
             </div>
           </div>
 
           {/* Customer Focused Card */}
-          <div className="sm:col-span-2 p-1.5 bg-[#f4f7fa] border border-[#e2e8f0] rounded-md flex items-center gap-1 shadow-sm">
-            <div className="h-5 w-5 rounded bg-[#0b2545] text-white flex items-center justify-center shrink-0 shadow-sm">
-              <Users className="h-3 w-3" />
+          <div className="sm:col-span-2 p-1.5 bg-transparent border border-slate-300 rounded-md flex items-center gap-1 shadow-xs">
+            <div className="h-4 w-4 rounded bg-[#0b2545] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Users className="h-2.5 w-2.5" />
             </div>
             <div>
-              <div className="font-black text-[9px] uppercase text-black tracking-wider">CUSTOMER FOCUSED</div>
-              <p className="text-[8.5px] text-slate-800 font-bold leading-tight mt-0.5">
+              <div className="font-black text-[8.5px] uppercase text-black tracking-wider leading-none">CUSTOMER FOCUSED</div>
+              <p className="text-[8px] text-slate-800 font-bold leading-tight mt-0.5">
                 On Time Delivery
               </p>
             </div>
@@ -558,15 +525,15 @@ export const TaxInvoiceViewer = () => {
         </div>
 
         {/* 6. LOWER GRID: BANK DETAILS | TERMS | FINANCIAL TOTALS (3 Rounded Cards) */}
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-1.5 text-xs">
           
           {/* Bank Details Card */}
-          <div className="sm:col-span-4 p-2 bg-[#f4f7fa] border border-[#e2e8f0] rounded-lg space-y-1 shadow-sm">
+          <div className="sm:col-span-4 p-2 bg-transparent border border-slate-300 rounded-lg space-y-1 shadow-xs">
             <div className="flex items-center gap-1.5 font-black text-black uppercase tracking-wider pb-0.5 border-b border-slate-200 text-[10px]">
               <Building2 className="h-3.5 w-3.5 text-[#0b2545]" />
               <span>Bank Details</span>
             </div>
-            <div className="space-y-0.5 text-[10px] pt-0.5">
+            <div className="space-y-0.5 text-[9.5px] pt-0.5">
               <div className="flex justify-between"><span className="text-slate-700 font-bold">Bank Name :</span> <strong className="text-black">{invoiceData.bank.name}</strong></div>
               <div className="flex justify-between"><span className="text-slate-700 font-bold">A/C No. :</span> <strong className="font-mono text-black font-black">{invoiceData.bank.acNo}</strong></div>
               <div className="flex justify-between"><span className="text-slate-700 font-bold">IFSC Code :</span> <strong className="font-mono text-black font-black">{invoiceData.bank.ifsc}</strong></div>
@@ -575,12 +542,12 @@ export const TaxInvoiceViewer = () => {
           </div>
 
           {/* Terms & Conditions Card */}
-          <div className="sm:col-span-4 p-2 bg-[#f4f7fa] border border-[#e2e8f0] rounded-lg space-y-1 shadow-sm">
+          <div className="sm:col-span-4 p-2 bg-transparent border border-slate-300 rounded-lg space-y-1 shadow-xs">
             <div className="flex items-center gap-1.5 font-black text-black uppercase tracking-wider pb-0.5 border-b border-slate-200 text-[10px]">
               <ScrollText className="h-3.5 w-3.5 text-[#0b2545]" />
               <span>Terms & Conditions</span>
             </div>
-            <ol className="list-decimal list-inside text-[8.5px] text-slate-800 space-y-0.5 leading-tight pt-0.5">
+            <ol className="list-decimal list-inside text-[8px] text-slate-800 space-y-0.5 leading-tight pt-0.5">
               <li>Goods once sold will not be taken back.</li>
               <li>Payment within agreed credit period.</li>
               <li>Interest @ 24% p.a. on overdue payments.</li>
@@ -591,30 +558,44 @@ export const TaxInvoiceViewer = () => {
           </div>
 
           {/* Financial Calculation Card with Solid Orange Grand Total */}
-          <div className="sm:col-span-4 bg-[#f4f7fa] border border-[#e2e8f0] rounded-lg flex flex-col justify-between overflow-hidden shadow-sm">
-            <div className="p-2 space-y-0.5 text-[10.5px]">
+          <div className="sm:col-span-4 bg-transparent border border-slate-300 rounded-lg flex flex-col justify-between overflow-hidden shadow-xs">
+            <div className="p-2 space-y-0.5 text-[10px]">
               <div className="flex justify-between">
-                <span className="font-semibold text-slate-700">Sub Total</span>
-                <span className="font-mono font-black text-black">{invoiceData.subTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className="font-semibold text-slate-700">Taxable Sub Total</span>
+                <span className="font-mono font-black text-black">₹{invoiceData.subTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-slate-700">CGST @ 9%</span>
-                <span className="font-mono font-black text-black">{invoiceData.cgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-slate-700">SGST @ 9%</span>
-                <span className="font-mono font-black text-black">{invoiceData.sgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
+              {invoiceData.isInterstate ? (
+                <div className="flex justify-between">
+                  <span className="font-semibold text-slate-700">IGST @ 18%</span>
+                  <span className="font-mono font-black text-black">₹{invoiceData.igst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-slate-700">CGST @ 9%</span>
+                    <span className="font-mono font-black text-black">₹{invoiceData.cgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-slate-700">SGST @ 9%</span>
+                    <span className="font-mono font-black text-black">₹{invoiceData.sgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between border-b border-slate-200 pb-0.5">
                 <span className="font-semibold text-slate-700">Round Off</span>
-                <span className="font-mono font-black text-black">{invoiceData.roundOff.toFixed(2)}</span>
+                <span className="font-mono font-black text-black">₹{invoiceData.roundOff.toFixed(2)}</span>
               </div>
             </div>
 
             {/* Grand Total Solid Orange Banner with Rounded Bottom */}
-            <div className="bg-[#ea580c] text-white py-1.5 px-3 flex items-center justify-between font-black text-xs uppercase tracking-wide">
-              <span>Grand Total (₹)</span>
-              <span className="text-sm font-mono font-black">{invoiceData.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <div
+              className="invoice-total-banner bg-[#ea580c] text-white py-1.5 px-3 flex items-center justify-between font-black text-xs uppercase tracking-wide"
+              style={{ backgroundColor: '#ea580c', color: '#ffffff' }}
+            >
+              <span style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>Grand Total (₹)</span>
+              <span className="text-sm font-mono font-black" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>
+                ₹{invoiceData.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         </div>
@@ -623,7 +604,7 @@ export const TaxInvoiceViewer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
           
           {/* Amount in Words Card */}
-          <div className="sm:col-span-7 p-2.5 bg-[#f4f7fa] border border-[#e2e8f0] rounded-lg shadow-sm">
+          <div className="sm:col-span-7 p-2.5 bg-transparent border border-slate-300 rounded-lg shadow-sm">
             <div className="flex items-center gap-1.5 text-[9.5px] font-black uppercase tracking-wider text-orange-600">
               <FileText className="h-3.5 w-3.5" />
               <span>Amount in Words</span>
@@ -664,34 +645,178 @@ export const TaxInvoiceViewer = () => {
         </div>
 
         {/* 8. FOOTER WITH REGISTERED ADDRESS & SLOGAN */}
-        <div className="rounded-lg overflow-hidden flex flex-col sm:flex-row items-stretch justify-between bg-[#0b2545] text-white">
+        <div
+          className="invoice-footer-banner rounded-lg overflow-hidden flex flex-col sm:flex-row items-stretch justify-between bg-[#0b2545] text-white"
+          style={{ backgroundColor: '#0b2545', color: '#ffffff' }}
+        >
           
           {/* Left: Contact Info & Regulatory Identifiers */}
           <div className="py-1.5 px-3 flex-1 text-[9px] space-y-0.5">
             <div className="flex items-center gap-1.5 text-white">
               <MapPin className="h-2.5 w-2.5 text-orange-400 shrink-0" />
-              <span>Plot No. XX, Industrial Area, Rajkot – 360____, Gujarat, India</span>
+              <span className="text-white">Plot No. XX, Industrial Area, Rajkot – 360____, Gujarat, India</span>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-white">
-              <span>📞 +91 98258 70821</span>
-              <span>✉ info@matheat.in</span>
-              <span>🌐 www.matheat.in</span>
+              <span className="text-white">📞 +91 98258 70821</span>
+              <span className="text-white">✉ info@matheat.in</span>
+              <span className="text-white">🌐 www.matheat.in</span>
             </div>
             <div className="text-[8px] text-white font-mono tracking-tight pt-0.5 border-t border-slate-700/60">
-              CIN : U29299GJ2026PTCXXX0X &nbsp;|&nbsp; GSTIN : 24XXXXX0000X &nbsp;|&nbsp; IEC : XXXXXXXXXX
+              <span className="text-white">CIN : U29299GJ2026PTCXXX0X &nbsp;|&nbsp; GSTIN : 24XXXXX0000X &nbsp;|&nbsp; IEC : XXXXXXXXXX</span>
             </div>
           </div>
 
           {/* Right: Angled Flame Orange Accent Wedge Banner */}
           <div
-            className="w-full sm:w-[190px] bg-[#ea580c] p-2 flex flex-col justify-center text-right font-black uppercase tracking-wider text-white shrink-0"
-            style={{ clipPath: 'polygon(15% 0%, 100% 0%, 100% 100%, 0% 100%)' }}
+            className="invoice-footer-wedge w-full sm:w-[190px] bg-[#ea580c] p-2 flex flex-col justify-center text-right font-black uppercase tracking-wider text-white shrink-0"
+            style={{
+              clipPath: 'polygon(15% 0%, 100% 0%, 100% 100%, 0% 100%)',
+              backgroundColor: '#ea580c',
+              color: '#ffffff'
+            }}
           >
-            <div className="text-[11px] text-white font-black leading-tight">HEAT TODAY</div>
-            <div className="text-[9px] text-white font-black leading-tight">A STRONGER TOMORROW</div>
+            <div className="text-[11px] text-white font-black leading-tight" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>HEAT TODAY</div>
+            <div className="text-[9px] text-white font-black leading-tight" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>A STRONGER TOMORROW</div>
           </div>
         </div>
       </div>
     </div>
   );
+
+  // Modal Dialog Mode (used when opened as a popup with isOpen/onClose)
+  if (isModal) {
+    return (
+      <div
+        id="invoice-modal-backdrop"
+        className="invoice-modal-backdrop fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-center items-start p-2 sm:p-4 overflow-y-auto"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose?.();
+        }}
+      >
+        <div className="invoice-modal-container relative w-full max-w-[880px] my-2 sm:my-4 flex flex-col font-sans">
+          {/* Top Action Ribbon - Screen Only (Hidden on Print) */}
+          <div className="no-print mb-2.5 flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-xl shadow-2xl border bg-white border-slate-300 text-slate-900">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-orange-600 flex items-center justify-center font-bold text-white shadow">
+                <FileCheck className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="text-xs font-black tracking-wide flex items-center gap-2">
+                  <span className="text-slate-900">OFFICIAL TAX INVOICE</span>
+                  <span className="font-mono text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-300 text-[11px] font-bold">
+                    {invoiceData.invoiceNo}
+                  </span>
+                </div>
+                <div className="text-[10px] mt-0.5 text-slate-600">
+                  Client: <strong className="text-slate-900">{invoiceData.billTo?.name}</strong> &bull; Total:{' '}
+                  <strong className="text-emerald-700 font-mono">₹{invoiceData.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleWhatsAppShare}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
+              >
+                <Share2 className="h-3.5 w-3.5" /> WhatsApp
+              </button>
+              <button
+                onClick={handleDownloadPdf}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
+              >
+                <Download className="h-3.5 w-3.5" /> PDF
+              </button>
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
+              >
+                <Printer className="h-3.5 w-3.5" /> Print Bill (A4)
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg transition-all cursor-pointer border bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+                title="Close (Esc)"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Printable Invoice Sheet */}
+          {invoiceSheetContent}
+        </div>
+      </div>
+    );
+  }
+
+  // Inline Page / Tab Mode (embedded directly with invoice selector dropdown)
+  return (
+    <div className="space-y-4">
+      {/* Top Action Ribbon (Hidden During Print) */}
+      <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm">
+        <div>
+          <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <FileCheck className="h-5 w-5 text-blue-600" />
+            Official MATHEAT Tax Invoice (Live Template)
+          </h2>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 font-medium">
+            Invoice No: <span className="font-bold text-orange-600">{invoiceData.invoiceNo}</span> &bull; 
+            Client: <span className="font-bold text-slate-900 dark:text-white">{invoiceData.billTo?.name}</span> &bull; 
+            GST Ready with Scannable Verification
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {liveInvoices.length > 0 && (
+            <select
+              value={selectedInvoice?._id || (selectedInvoice ? selectedInvoice.invoiceNumber || 'custom' : 'preview')}
+              onChange={(e) => {
+                if (e.target.value === 'preview') {
+                  setSelectedInvoice(null);
+                } else {
+                  const found = liveInvoices.find((inv) => (inv._id || inv.invoiceNumber) === e.target.value);
+                  if (found) setSelectedInvoice(found);
+                }
+              }}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="preview">Sample Preview Template (MH/25-26/0001)</option>
+              {liveInvoices.map((inv) => (
+                <option key={inv._id || inv.invoiceNumber} value={inv._id || inv.invoiceNumber}>
+                  {inv.invoiceNumber || inv.invoiceNo} - {inv.companyName || inv.customerName || 'Customer'}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <button
+            onClick={handleWhatsAppShare}
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
+          >
+            <Share2 className="h-4 w-4" /> WhatsApp
+          </button>
+          <button
+            onClick={handleDownloadPdf}
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
+          >
+            <Download className="h-4 w-4" /> Download Official PDF
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold shadow transition-all cursor-pointer"
+          >
+            <Printer className="h-4 w-4" /> Print Tax Invoice (A4)
+          </button>
+        </div>
+      </div>
+
+      {/* Printable Invoice Sheet */}
+      {invoiceSheetContent}
+    </div>
+  );
 };
+
+// Aliased export so existing imports of TaxInvoicePrintModal continue working seamlessly
+export const TaxInvoicePrintModal = TaxInvoiceViewer;
+export default TaxInvoiceViewer;

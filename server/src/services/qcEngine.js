@@ -15,15 +15,16 @@ export const evaluateQC = (inspectionData, partSpec) => {
   // 1. Surface Hardness Evaluation
   const surfaceReadings = inspectionData.hardness?.sampleReadings || [];
   if (surfaceReadings.length > 0) {
-    const sum = surfaceReadings.reduce((acc, curr) => acc + Number(curr.value || 0), 0);
+    const getVal = (r) => Number(r.value !== undefined ? r.value : (r.observedValue !== undefined ? r.observedValue : 0));
+    const sum = surfaceReadings.reduce((acc, curr) => acc + getVal(curr), 0);
     const avg = Number((sum / surfaceReadings.length).toFixed(1));
     inspectionData.hardness.averageValue = avg;
 
-    const min = Number(inspectionData.hardness.specifiedMin);
-    const max = Number(inspectionData.hardness.specifiedMax);
+    const min = Number(inspectionData.hardness.specifiedMin || 58);
+    const max = Number(inspectionData.hardness.specifiedMax || 62);
 
     // Check individual readings & average
-    const outOfSpecReadings = surfaceReadings.filter(r => r.value < min || r.value > max);
+    const outOfSpecReadings = surfaceReadings.filter(r => getVal(r) < min || getVal(r) > max);
     if (outOfSpecReadings.length > 0 || avg < min || avg > max) {
       results.hardnessResult = 'FAIL';
       results.reasons.push(
@@ -38,7 +39,8 @@ export const evaluateQC = (inspectionData, partSpec) => {
   // Core Hardness (if specified)
   const coreReadings = inspectionData.hardness?.coreReadings || [];
   if (inspectionData.hardness?.coreSpecifiedMin && coreReadings.length > 0) {
-    const coreSum = coreReadings.reduce((acc, curr) => acc + Number(curr.value || 0), 0);
+    const getCoreVal = (r) => Number(r.value !== undefined ? r.value : (r.observedValue !== undefined ? r.observedValue : 0));
+    const coreSum = coreReadings.reduce((acc, curr) => acc + getCoreVal(curr), 0);
     const coreAvg = Number((coreSum / coreReadings.length).toFixed(1));
     inspectionData.hardness.coreAverageValue = coreAvg;
 

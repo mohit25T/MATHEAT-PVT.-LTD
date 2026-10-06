@@ -85,12 +85,15 @@ export const create = async (req, res, next) => {
         inst = await QCInstrument.findOne({ $or: [{ instrumentId: machineCheck }, { name: machineCheck }] });
       }
       if (inst) {
-        const isExpired = inst.calibrationStatus === 'EXPIRED' || (inst.nextCalibrationDue && new Date(inst.nextCalibrationDue) < new Date());
+        const dueDate = inst.calibrationDueDate || inst.nextCalibrationDue;
+        const isExpired = inst.calibrationStatus === 'EXPIRED' ||
+          inst.status === 'CALIBRATION_OVERDUE' ||
+          (dueDate && new Date(dueDate) < new Date());
         if (isExpired) {
-          const expStr = inst.nextCalibrationDue ? new Date(inst.nextCalibrationDue).toLocaleDateString('en-IN') : 'expired';
+          const expStr = dueDate ? new Date(dueDate).toLocaleDateString('en-IN') : 'expired date';
           return res.status(400).json({
             success: false,
-            message: `QC Instrument ${inst.instrumentId || inst.name} calibration expired on ${expStr}. Testing using uncalibrated instruments is strictly prohibited under ISO 9001 / CQI-9.`
+            message: `QC Instrument ${inst.instrumentId || inst.name || inst.instrumentName} calibration expired on ${expStr}. Testing using uncalibrated instruments is strictly prohibited under ISO 9001 / CQI-9.`
           });
         }
       }
@@ -98,16 +101,23 @@ export const create = async (req, res, next) => {
 
     const part = batch.part || {};
 
+    const rawSampleReadings = Array.isArray(hardness?.sampleReadings)
+      ? hardness.sampleReadings.map((r, i) => (typeof r === 'number' ? { sampleNumber: i + 1, location: 'Surface', value: r } : r))
+      : [];
+    const rawCoreReadings = Array.isArray(hardness?.coreReadings)
+      ? hardness.coreReadings.map((r, i) => (typeof r === 'number' ? { sampleNumber: i + 1, location: 'Core', value: r } : r))
+      : [];
+
     const rawData = {
       hardness: {
         scale: hardness?.scale || part.hardnessSpec?.scale || 'HRC',
         specifiedMin: part.hardnessSpec?.min || 58,
         specifiedMax: part.hardnessSpec?.max || 62,
         machineUsed: hardness?.machineUsed || 'Rockwell Hardness Tester (HT-RC-01)',
-        sampleReadings: hardness?.sampleReadings || [],
+        sampleReadings: rawSampleReadings,
         coreSpecifiedMin: part.coreHardnessSpec?.min,
         coreSpecifiedMax: part.coreHardnessSpec?.max,
-        coreReadings: hardness?.coreReadings || []
+        coreReadings: rawCoreReadings
       },
       caseDepth: {
         required: part.caseDepthSpec?.required || false,

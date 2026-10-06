@@ -19,6 +19,9 @@ const inventorySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Customer'
   },
+  customerName: {
+    type: String
+  },
   
   quantity: { type: Number, required: true, default: 0 },
   weightKg: { type: Number, required: true, default: 0 },

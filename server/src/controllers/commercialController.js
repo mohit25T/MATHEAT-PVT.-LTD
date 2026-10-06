@@ -102,6 +102,8 @@ export const createDispatch = async (req, res, next) => {
       customer: batch.customer?._id,
       customerName: batch.customer?.companyName || 'Customer',
       companyName: batch.customer?.companyName || 'Customer',
+      customerGstin: customerGstin || batch.customer?.gstin || '',
+      gstNumber: customerGstin || batch.customer?.gstin || '',
       dispatch: dispatch._id,
       batchId: batch.batchId,
       partNumber: batch.part?.partNumber || 'COMPONENT',

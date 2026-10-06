@@ -9,7 +9,9 @@
     "website": "npm --prefix website run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "start": "node server/src/server.js",
-    "seed": "node server/src/seed.js"
+    "seed": "node server/src/seed.js",
+    "test": "npm --prefix server run test",
+    "build": "npm --prefix client run build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

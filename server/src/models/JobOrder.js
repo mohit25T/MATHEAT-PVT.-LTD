@@ -29,7 +29,7 @@ const jobOrderSchema = new mongoose.Schema({
   requiredCaseDepth: { type: String }, // e.g. "0.80 - 1.10 mm"
   
   deliveryDate: { type: Date, required: true },
-  priority: { type: String, enum: ['NORMAL', 'HIGH', 'URGENT'], default: 'NORMAL' },
+  priority: { type: String, default: 'STANDARD', uppercase: true },
   
   status: {
     type: String,

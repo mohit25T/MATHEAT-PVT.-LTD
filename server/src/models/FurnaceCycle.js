@@ -19,10 +19,14 @@ const furnaceCycleSchema = new mongoose.Schema({
   batchId: { type: String, required: true },
   furnace: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Furnace',
-    required: true
+    ref: 'Furnace'
   },
-  furnaceId: { type: String, required: true },
+  furnaceId: { type: String, default: 'F-01' },
+  recipe: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Recipe'
+  },
+  recipeRevision: { type: mongoose.Schema.Types.Mixed, default: 'V1' },
   operator: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -34,31 +38,32 @@ const furnaceCycleSchema = new mongoose.Schema({
   // Target vs Actual Furnace Parameters (Never overwrite target with actual!)
   parameters: {
     heating: {
-      targetTemp: { type: Number, required: true },
+      targetTemp: { type: Number, default: 850 },
       actualTemp: { type: Number },
-      targetHeatingTimeMinutes: Number,
+      targetHeatingTimeMinutes: { type: Number, default: 60 },
       actualHeatingTimeMinutes: Number
     },
     soaking: {
-      targetTemp: { type: Number, required: true },
+      targetTemp: { type: Number, default: 850 },
       actualTemp: { type: Number },
-      targetSoakMinutes: { type: Number, required: true },
+      targetSoakMinutes: { type: Number, default: 90 },
       actualSoakMinutes: { type: Number },
-      targetCarbonPotential: Number,
+      targetCarbonPotential: { type: Number, default: 0.85 },
       actualCarbonPotential: Number
     },
     quenching: {
       quenchMedium: { type: String, default: 'OIL' },
-      targetQuenchTemp: Number,
+      targetQuenchTemp: { type: Number, default: 60 },
       actualQuenchTemp: Number,
-      targetQuenchTimeMinutes: Number,
+      targetQuenchTimeMinutes: { type: Number, default: 15 },
       actualQuenchTimeMinutes: Number,
+      transferTimeSeconds: Number,
       agitationSpeed: { type: String, default: 'HIGH' }
     },
     tempering: {
-      targetTemp: { type: Number, required: true },
+      targetTemp: { type: Number, default: 180 },
       actualTemp: { type: Number },
-      targetTimeMinutes: { type: Number, required: true },
+      targetTimeMinutes: { type: Number, default: 120 },
       actualTimeMinutes: { type: Number },
       coolingMethod: { type: String, default: 'Air Cool' }
     }
