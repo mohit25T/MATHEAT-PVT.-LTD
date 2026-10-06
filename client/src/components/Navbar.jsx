@@ -18,8 +18,10 @@ import {
   Shield,
   AlertTriangle,
   Info,
-  Check
+  Check,
+  KeyRound
 } from 'lucide-react';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 export const Navbar = ({
   onSearch,
@@ -33,6 +35,7 @@ export const Navbar = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showAlerts, setShowAlerts] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const profileMenuRef = useRef(null);
@@ -491,7 +494,27 @@ export const Navbar = ({
                   </div>
                 </button>
 
-                {/* 4. Logout Option */}
+                {/* 4. Change Password Option */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    setIsChangePasswordOpen(true);
+                  }}
+                  className={`w-full flex items-center justify-between p-2.5 px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
+                    isLight
+                      ? 'hover:bg-slate-100 text-slate-800 border-transparent hover:border-slate-200'
+                      : 'hover:bg-slate-800 text-slate-200 border-transparent hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <KeyRound className="h-4 w-4 text-orange-600 dark:text-orange-400 shrink-0" />
+                    <span>Change Password</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">Security</span>
+                </button>
+
+                {/* 5. Logout Option */}
                 <button
                   type="button"
                   onClick={() => {
@@ -514,6 +537,12 @@ export const Navbar = ({
           )}
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
     </header>
   );
 };

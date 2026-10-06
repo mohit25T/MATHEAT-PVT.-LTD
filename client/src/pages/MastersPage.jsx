@@ -22,10 +22,12 @@ import {
   Key,
   Shield,
   X,
-  Lock
+  Lock,
+  KeyRound
 } from 'lucide-react';
 import api from '../api/client';
 import { CustomerFormModal } from '../components/CustomerFormModal';
+import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { useTheme } from '../context/ThemeContext';
 import CreatableSelect from '../components/CreatableSelect';
 
@@ -51,6 +53,7 @@ export const MastersPage = () => {
   });
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [passwordResetUser, setPasswordResetUser] = useState(null);
   const [userErrorMsg, setUserErrorMsg] = useState('');
   const [userSubmitting, setUserSubmitting] = useState(false);
   const [userFormData, setUserFormData] = useState({
@@ -735,17 +738,30 @@ export const MastersPage = () => {
                             {u.badgeNumber || u.employeeId || '-'}
                           </td>
                           <td className="p-3 text-right">
-                            <button
-                              onClick={() => handleDeleteUser(u._id, fullName)}
-                              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                                isLight
-                                  ? 'bg-slate-100 hover:bg-rose-100 text-rose-700 border-slate-300'
-                                  : 'bg-slate-800 hover:bg-rose-950 text-rose-400 border-slate-700'
-                              }`}
-                              title="Delete User"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => setPasswordResetUser(u)}
+                                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                  isLight
+                                    ? 'bg-slate-100 hover:bg-orange-100 text-orange-700 border-slate-300'
+                                    : 'bg-slate-800 hover:bg-orange-950 text-orange-400 border-slate-700'
+                                }`}
+                                title="Reset / Change Password"
+                              >
+                                <KeyRound className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(u._id, fullName)}
+                                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                  isLight
+                                    ? 'bg-slate-100 hover:bg-rose-100 text-rose-700 border-slate-300'
+                                    : 'bg-slate-800 hover:bg-rose-950 text-rose-400 border-slate-700'
+                                }`}
+                                title="Delete User"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1414,6 +1430,14 @@ export const MastersPage = () => {
           </div>
         </div>
       )}
+
+      {/* Staff Password Reset Modal */}
+      <ChangePasswordModal
+        isOpen={!!passwordResetUser}
+        targetUser={passwordResetUser}
+        onClose={() => setPasswordResetUser(null)}
+        onSuccess={() => fetchUsers()}
+      />
     </div>
   );
 };

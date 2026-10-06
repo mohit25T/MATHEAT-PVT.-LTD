@@ -16,6 +16,8 @@ import { Recipe } from '../src/models/Recipe.js';
 import { Furnace } from '../src/models/Furnace.js';
 import { QCInstrument } from '../src/models/QCInstrument.js';
 import { Batch } from '../src/models/Batch.js';
+import { User } from '../src/models/User.js';
+import { ROLES } from '../src/config/constants.js';
 
 describe('MATHEAT PVT. LTD. — End-to-End Heat-Treatment ERP Lifecycle Test', () => {
   let server;
@@ -63,6 +65,25 @@ describe('MATHEAT PVT. LTD. — End-to-End Heat-Treatment ERP Lifecycle Test', (
     await Recipe.deleteMany({ recipeCode: /^RCP-CARB/ });
     await Furnace.deleteMany({ furnaceId: /^FURNACE-SQF/ });
     await QCInstrument.deleteMany({ instrumentId: /^INST-/ });
+
+    // Ensure admin user exists with password admin@123
+    let admin = await User.findOne({ username: 'admin' });
+    if (!admin) {
+      await User.create({
+        username: 'admin',
+        email: 'admin@matheat.com',
+        password: 'admin@123',
+        firstName: 'Admin',
+        lastName: 'MATHEAT',
+        role: ROLES.ADMIN,
+        department: 'Management',
+        isActive: true
+      });
+    } else {
+      admin.password = 'admin@123';
+      admin.isActive = true;
+      await admin.save();
+    }
 
     // Login as admin
     const loginRes = await fetch(`${baseUrl}/auth/login`, {
@@ -538,5 +559,66 @@ describe('MATHEAT PVT. LTD. — End-to-End Heat-Treatment ERP Lifecycle Test', (
     });
     assert.equal(updateRes.status, 200);
     assert.equal(updateRes.data.batch.inputWeightKg, 105);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 14: CHANGE PASSWORD (SELF-SERVICE) & ADMIN RESET PASSWORD
+  // ─────────────────────────────────────────────────────────────────────────────
+  it('Step 14: Should support changing user password and admin password reset', async () => {
+    // 1. Wrong current password must be rejected
+    const wrongCurrentRes = await apiCall('/auth/change-password', 'POST', {
+      currentPassword: 'wrong_current_password',
+      newPassword: 'newPassword@456',
+      confirmPassword: 'newPassword@456'
+    });
+    assert.equal(wrongCurrentRes.status, 401);
+    assert.equal(wrongCurrentRes.data.success, false);
+
+    // 2. Mismatched confirmation password must be rejected
+    const mismatchRes = await apiCall('/auth/change-password', 'POST', {
+      currentPassword: 'admin@123',
+      newPassword: 'newPassword@456',
+      confirmPassword: 'differentPassword@789'
+    });
+    assert.equal(mismatchRes.status, 400);
+
+    // 3. Valid password change must succeed
+    const changeRes = await apiCall('/auth/change-password', 'POST', {
+      currentPassword: 'admin@123',
+      newPassword: 'admin@newPass2026',
+      confirmPassword: 'admin@newPass2026'
+    });
+    assert.equal(changeRes.status, 200);
+    assert.equal(changeRes.data.success, true);
+
+    // 4. Verification: login with newly changed password succeeds
+    const newLoginRes = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'admin@newPass2026' })
+    });
+    assert.equal(newLoginRes.status, 200, 'Login with updated password must succeed');
+    const newLoginData = await newLoginRes.json();
+    authToken = newLoginData.token;
+
+    // 5. Restore original password admin@123 to keep seeded environment consistent
+    const restoreRes = await apiCall('/auth/change-password', 'POST', {
+      currentPassword: 'admin@newPass2026',
+      newPassword: 'admin@123',
+      confirmPassword: 'admin@123'
+    });
+    assert.equal(restoreRes.status, 200);
+
+    // 6. Test Admin resetting another user's password
+    const usersListRes = await apiCall('/auth/users');
+    assert.equal(usersListRes.status, 200);
+    if (usersListRes.data.users && usersListRes.data.users.length > 0) {
+      const targetUser = usersListRes.data.users[0];
+      const resetRes = await apiCall(`/auth/users/${targetUser._id}/reset-password`, 'POST', {
+        newPassword: 'ResetPassword@999'
+      });
+      assert.equal(resetRes.status, 200);
+      assert.equal(resetRes.data.success, true);
+    }
   });
 });

@@ -349,9 +349,11 @@ export const request = async (method, endpoint, data = null, customHeaders = {})
 export const authApi = {
   login: (credentials) => request('POST', '/auth/login', credentials),
   me: () => request('GET', '/auth/me'),
+  changePassword: (data) => request('POST', '/auth/change-password', data),
   getUsers: () => request('GET', '/auth/users'),
   createUser: (userData) => request('POST', '/auth/users', userData),
   updateUser: (id, userData) => request('PUT', `/auth/users/${id}`, userData),
+  resetUserPassword: (id, data) => request('POST', `/auth/users/${id}/reset-password`, data),
   deleteUser: (id) => request('DELETE', `/auth/users/${id}`),
   verifyAdminPassword: (data) => request('POST', '/auth/verify-admin-password', data)
 };

@@ -74,3 +74,6 @@ server/uploads/**/*.jpg
 server/uploads/**/*.jpeg
 server/uploads/**/*.png
 !server/uploads/**/.gitkeep
+
+# Scratch directory
+scratch/

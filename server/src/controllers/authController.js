@@ -259,3 +259,102 @@ export const verifyAdminPassword = async (req, res, next) => {
     next(error);
   }
 };
+
+// 8. CHANGE PASSWORD (AUTHENTICATED SELF-SERVICE)
+export const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required.'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long.'
+      });
+    }
+
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password and confirm password do not match.'
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Incorrect current password. Please try again.'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    await logAudit({
+      req: { user, ip: req.ip },
+      action: 'PASSWORD_CHANGED',
+      module: 'AUTH',
+      recordId: user._id,
+      entityType: 'User',
+      description: `User ${user.username} (${user.firstName} ${user.lastName}) changed their password successfully.`
+    });
+
+    return res.json({
+      success: true,
+      message: 'Password has been updated successfully.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 9. ADMIN RESET USER PASSWORD
+export const resetUserPassword = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long.'
+      });
+    }
+
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    targetUser.password = newPassword;
+    await targetUser.save();
+
+    await logAudit({
+      req: { user: req.user, ip: req.ip },
+      action: 'USER_PASSWORD_RESET',
+      module: 'AUTH',
+      recordId: targetUser._id,
+      entityType: 'User',
+      description: `Password for user ${targetUser.username} was reset by ${req.user.firstName} ${req.user.lastName} (${req.user.username}).`
+    });
+
+    return res.json({
+      success: true,
+      message: `Password for ${targetUser.username} has been reset successfully.`
+    });
+  } catch (error) {
+    next(error);
+  }
+};
