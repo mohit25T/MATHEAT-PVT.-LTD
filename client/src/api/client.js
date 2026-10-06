@@ -430,6 +430,7 @@ export const batchesApi = {
   getAll: () => request('GET', '/batches'),
   getById: (id) => request('GET', `/batches/${id}`),
   getNextBatchNumber: () => request('GET', '/batches/next-number'),
+  getNextHeatNumber: () => request('GET', '/batches/next-heat-number'),
   create: (data) => request('POST', '/batches', data),
   loadFurnace: (id) => request('POST', `/batches/${id}/load-furnace`),
   startCycle: (id) => request('POST', `/batches/${id}/start-cycle`),

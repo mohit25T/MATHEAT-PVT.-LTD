@@ -54,6 +54,14 @@ const batchSchema = new mongoose.Schema({
   rejectionQuantity: { type: Number, default: 0 },
   rejectionWeightKg: { type: Number, default: 0 },
   scrapWeightKg: { type: Number, default: 0 },
+  burningLossKg: { type: Number, default: 0 },
+  massReconciliationStatus: {
+    type: String,
+    enum: ['BALANCED', 'DISCREPANCY', 'PENDING'],
+    default: 'PENDING'
+  },
+  actualTransferTimeSeconds: { type: Number },
+  transferTimeExceeded: { type: Boolean, default: false },
   
   // Timing
   productionDate: { type: Date, default: Date.now },
