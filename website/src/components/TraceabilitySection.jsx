@@ -135,7 +135,7 @@ export default function TraceabilitySection({ onOpenCertificateModal }) {
               </div>
 
               {/* Sample Batch Quick Chips */}
-              <div className="flex items-center gap-2 pt-1 text-[11px] font-mono text-slate-500">
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-mono text-slate-500">
                 <span>Sample Batches:</span>
                 {Object.keys(demoBatches).map((b) => (
                   <button
@@ -167,9 +167,9 @@ export default function TraceabilitySection({ onOpenCertificateModal }) {
 
           {/* Right: The Requested Digital Batch Card Demo */}
           <div className="lg:col-span-6">
-            <div className="bg-white border-2 border-navy-900 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden font-mono text-xs">
+            <div className="bg-white border-2 border-navy-900 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-xl relative overflow-hidden font-mono text-xs">
               {/* Top Industrial Header Banner */}
-              <div className="flex items-center justify-between pb-4 mb-4 border-b-2 border-navy-900">
+              <div className="flex items-center justify-between pb-4 mb-4 border-b-2 border-navy-900 gap-2">
                 <div>
                   <span className="text-[10px] text-slate-400 uppercase tracking-widest block">
                     MATHEAT PVT. LTD. // TRACEABILITY SYSTEM
@@ -178,50 +178,50 @@ export default function TraceabilitySection({ onOpenCertificateModal }) {
                     DIGITAL BATCH ROUTING CARD
                   </div>
                 </div>
-                <div className="p-2 bg-slate-100 rounded border border-slate-300">
-                  <QrCode className="w-8 h-8 text-navy-900" />
+                <div className="p-2 bg-slate-100 rounded border border-slate-300 shrink-0">
+                  <QrCode className="w-7 h-7 sm:w-8 sm:h-8 text-navy-900" />
                 </div>
               </div>
 
               {/* Exact Requested Batch Parameters Table */}
               <div className="space-y-2.5 divide-y divide-slate-100">
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex flex-wrap justify-between items-center pt-2 gap-1">
                   <span className="text-slate-500 uppercase">Batch No.</span>
-                  <span className="font-bold text-navy-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  <span className="font-bold text-navy-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 break-all">
                     {currentBatch.batchNo}
                   </span>
                 </div>
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex flex-wrap justify-between items-center pt-2 gap-1">
                   <span className="text-slate-500 uppercase">Heat No.</span>
-                  <span className="font-bold text-navy-900">{currentBatch.heatNo}</span>
+                  <span className="font-bold text-navy-900 break-all">{currentBatch.heatNo}</span>
                 </div>
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex flex-wrap justify-between items-center pt-2 gap-1">
                   <span className="text-slate-500 uppercase">Process</span>
-                  <span className="font-bold text-navy-900">{currentBatch.process}</span>
+                  <span className="font-bold text-navy-900 break-all">{currentBatch.process}</span>
                 </div>
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex flex-wrap justify-between items-center pt-2 gap-1">
                   <span className="text-slate-500 uppercase">Furnace</span>
-                  <span className="font-bold text-navy-900">{currentBatch.furnace}</span>
+                  <span className="font-bold text-navy-900 break-all">{currentBatch.furnace}</span>
                 </div>
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex flex-wrap justify-between items-center pt-2 gap-1">
                   <span className="text-slate-500 uppercase">QC Result</span>
-                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-300 flex items-center gap-1">
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-300 flex items-center gap-1 shrink-0">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {currentBatch.qc}
                   </span>
                 </div>
-                <div className="flex justify-between items-center pt-2">
+                <div className="flex flex-wrap justify-between items-center pt-2 gap-1">
                   <span className="text-slate-500 uppercase">Certificate No.</span>
-                  <span className="font-bold text-heat-orange bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                  <span className="font-bold text-heat-orange bg-orange-50 px-2 py-0.5 rounded border border-orange-200 break-all">
                     {currentBatch.certificate}
                   </span>
                 </div>
               </div>
 
               {/* Verified Digital Stamp */}
-              <div className="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
+              <div className="mt-6 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1 text-slate-600">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                   CRYPTOGRAPHICALLY LOGGED
                 </span>
                 <button

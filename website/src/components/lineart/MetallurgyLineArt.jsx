@@ -14,21 +14,22 @@ export default function MetallurgyLineArt() {
     <div className="bg-white border border-navy-900/10 rounded-xl p-6 shadow-xl relative overflow-hidden">
 
       {/* Header & Stage Controller */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-navy-900/10">
-        <div>
-          <span className="font-mono text-xs uppercase tracking-widest text-heat-orange font-bold">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 mb-6 pb-4 border-b border-navy-900/10">
+        <div className="shrink-0">
+          <span className="font-mono text-xs uppercase tracking-widest text-heat-orange font-bold block">
             // MICROSTRUCTURE DYNAMICS
           </span>
-          <h4 className="text-navy-900 font-bold text-lg mt-0.5">
+          <h4 className="text-navy-900 font-bold text-lg mt-0.5 sm:whitespace-nowrap">
             Metallurgical Phase Transformation
           </h4>
         </div>
 
         {/* Phase Buttons */}
-        <div className="inline-flex p-1 bg-slate-100 rounded-lg border border-slate-200">
+        <div className="inline-flex p-1 bg-slate-100 rounded-lg border border-slate-200 gap-1.5 shrink-0 overflow-x-auto max-w-full self-start lg:self-auto">
           <button
+            type="button"
             onClick={() => setActiveTab('before')}
-            className={`px-3 py-1.5 rounded-md text-xs font-mono font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-mono font-semibold transition-all whitespace-nowrap shrink-0 min-w-max cursor-pointer ${
               activeTab === 'before'
                 ? 'bg-navy-900 text-white shadow-sm'
                 : 'text-slate-600 hover:text-navy-900'
@@ -37,8 +38,9 @@ export default function MetallurgyLineArt() {
             1. BEFORE (RAW)
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('process')}
-            className={`px-3 py-1.5 rounded-md text-xs font-mono font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-mono font-semibold transition-all whitespace-nowrap shrink-0 min-w-max cursor-pointer ${
               activeTab === 'process'
                 ? 'bg-heat-orange text-white shadow-sm'
                 : 'text-slate-600 hover:text-navy-900'
@@ -47,8 +49,9 @@ export default function MetallurgyLineArt() {
             2. THERMAL PROCESS
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('after')}
-            className={`px-3 py-1.5 rounded-md text-xs font-mono font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-mono font-semibold transition-all whitespace-nowrap shrink-0 min-w-max cursor-pointer ${
               activeTab === 'after'
                 ? 'bg-navy-900 text-white shadow-sm'
                 : 'text-slate-600 hover:text-navy-900'
@@ -63,9 +66,9 @@ export default function MetallurgyLineArt() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
         {/* SVG Grain Microscope Simulation */}
         <div className="md:col-span-7 bg-navy-950 rounded-xl p-4 border border-navy-800 shadow-inner flex flex-col items-center">
-          <div className="w-full flex justify-between items-center text-[10px] font-mono text-slate-400 mb-2">
-            <span>OPTICAL 500X ETCH (2% NITAL)</span>
-            <span className="text-heat-orange">
+          <div className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center text-[10px] sm:text-[11px] font-mono text-slate-400 mb-2 gap-1">
+            <span className="whitespace-nowrap font-bold text-slate-300">OPTICAL 500X ETCH (2% NITAL)</span>
+            <span className="text-heat-orange font-bold text-left sm:text-right whitespace-nowrap">
               {activeTab === 'before' && "COARSE PEARLITE + FERRITE"}
               {activeTab === 'process' && "AUSTENITE RECRYSTALLIZATION (850°C)"}
               {activeTab === 'after' && "FINE TEMPERED MARTENSITE (60 HRC)"}
@@ -126,10 +129,13 @@ export default function MetallurgyLineArt() {
                 <circle cx="220" cy="150" r="3" fill="#FF6B00" />
                 <circle cx="200" cy="90" r="3" fill="#FF6B00" />
 
-                <text x="200" y="35" textAnchor="middle" fill="#FF6B00" fontSize="10" fontFamily="'Times New Roman', Times, serif" fontWeight="bold">
+                {/* Clear pill badge with high contrast background */}
+                <rect x="75" y="16" width="250" height="20" rx="4" fill="#06101E" stroke="#FF6B00" strokeWidth="1" opacity="0.95" />
+                <text x="200" y="30" textAnchor="middle" fill="#FF6B00" fontSize="9" fontFamily="monospace" fontWeight="bold">
                   FCC AUSTENITE (γ-PHASE) FORMATION
                 </text>
-                <text x="200" y="215" textAnchor="middle" fill="#FFA048" fontSize="9" fontFamily="'Times New Roman', Times, serif">
+                <rect x="75" y="205" width="250" height="18" rx="4" fill="#06101E" stroke="#FFA048" strokeWidth="0.8" opacity="0.95" />
+                <text x="200" y="218" textAnchor="middle" fill="#FFA048" fontSize="8.5" fontFamily="monospace">
                   CARBON DIFFUSION INTO SOLID SOLUTION
                 </text>
               </g>

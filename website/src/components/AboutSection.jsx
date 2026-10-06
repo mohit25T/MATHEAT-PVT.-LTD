@@ -1,6 +1,7 @@
 import React from 'react';
 import MetallurgyLineArt from './lineart/MetallurgyLineArt';
 import { CheckCircle2, Flame, Layers, ShieldCheck, Thermometer, Clock, Wind, Droplets } from 'lucide-react';
+import SwipableCardCarousel from './common/SwipableCardCarousel';
 
 export default function AboutSection() {
   const controlParameters = [
@@ -38,43 +39,48 @@ export default function AboutSection() {
 
         {/* 7 Engineering Pillars Grid */}
         <div className="bg-white border-2 border-slate-400 rounded-2xl p-4 sm:p-5 shadow-lg">
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
-            <div>
-              <span className="font-mono text-[11px] text-slate-500 uppercase tracking-widest font-bold">
+          <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+            <div className="shrink-0 min-w-0">
+              <span className="font-mono text-[11px] text-slate-500 uppercase tracking-widest font-bold block">
                 QUALITY MANAGEMENT PROTOCOL
               </span>
-              <h3 className="text-lg font-bold text-navy-900">
+              <h3 className="text-lg font-bold text-navy-900 mt-0.5 sm:whitespace-nowrap">
                 The Seven Pillars of MATHEAT Process Control
               </h3>
             </div>
-            <span className="font-mono text-xs font-bold text-heat-orange px-3 py-1 bg-orange-50 border border-orange-200 rounded">
+            <span className="font-mono text-xs font-bold text-heat-orange px-3 py-1 bg-orange-50 border border-orange-200 rounded shrink-0 whitespace-nowrap self-start md:self-auto">
               ZERO-COMPROMISE METALLURGY
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {controlParameters.map((param, idx) => {
+          <SwipableCardCarousel
+            items={controlParameters}
+            autoSwipeInterval={3000}
+            cardMaxWidth="max-w-2xl"
+            renderItem={(param, idx) => {
               const Icon = param.icon;
               return (
                 <div
                   key={idx}
-                  className="p-4 rounded-xl bg-slate-100 border-2 border-slate-300 hover:border-heat-orange hover:bg-orange-50/30 shadow-sm hover:shadow-md transition-all group"
+                  className="p-4 rounded-xl bg-slate-100 border-2 border-slate-300 hover:border-heat-orange hover:bg-orange-50/30 shadow-sm hover:shadow-md transition-all group h-full flex flex-col justify-between"
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 rounded bg-navy-900 text-white group-hover:bg-heat-orange transition-colors">
-                      <Icon className="w-4 h-4" />
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded bg-navy-900 text-white group-hover:bg-heat-orange transition-colors shrink-0">
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <h4 className="font-mono text-xs font-bold text-navy-900 uppercase break-words">
+                        {param.name}
+                      </h4>
                     </div>
-                    <h4 className="font-mono text-xs font-bold text-navy-900 uppercase">
-                      {param.name}
-                    </h4>
+                    <p className="text-xs text-slate-600 leading-relaxed pl-1 break-words">
+                      {param.desc}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed pl-1">
-                    {param.desc}
-                  </p>
                 </div>
               );
-            })}
-          </div>
+            }}
+          />
         </div>
 
       </div>

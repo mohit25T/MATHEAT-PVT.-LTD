@@ -7,43 +7,43 @@ export default function CertificateModal({ isOpen, onClose, onOpenQuoteModal }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-navy-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white border-2 border-navy-900 rounded-xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl relative p-4 sm:p-6 font-sans">
+      <div className="bg-white border-2 border-navy-900 rounded-xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl relative p-3.5 sm:p-6 font-sans">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-navy-900 hover:bg-slate-100 transition-colors"
+          className="absolute top-3 sm:top-4 right-3 sm:right-4 p-2 rounded-full text-slate-400 hover:text-navy-900 hover:bg-slate-100 transition-colors"
           aria-label="Close certificate modal"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Certificate Top Header */}
-        <div className="border-b-2 border-navy-900 pb-4 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="border-b-2 border-navy-900 pb-4 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pr-8 sm:pr-0">
           <div className="flex items-center gap-3">
-            <img src="/matheat_logo.png" alt="MATHEAT PVT. LTD." className="h-11 w-auto object-contain" />
+            <img src="/matheat_logo.png" alt="MATHEAT PVT. LTD." className="h-9 sm:h-11 w-auto object-contain" />
             <div>
-              <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest block leading-tight">
+              <span className="font-mono text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-widest block leading-tight">
                 METALLURGICAL TEST LABORATORY
               </span>
-              <h3 className="text-lg font-black text-navy-900 tracking-tight">
+              <h3 className="text-base sm:text-lg font-black text-navy-900 tracking-tight">
                 HEAT TREATMENT CERTIFICATE (HTC)
               </h3>
             </div>
           </div>
 
-          <div className="text-right font-mono text-xs">
+          <div className="text-left sm:text-right font-mono text-xs">
             <div className="text-heat-orange font-bold text-sm">
               NO: {sampleCertificate.certificateNo}
             </div>
-            <div className="text-slate-500 text-[11px]">
+            <div className="text-slate-500 text-[10px] sm:text-[11px]">
               DATE: {sampleCertificate.date}
             </div>
           </div>
         </div>
 
         {/* Certificate Metadata Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3.5 mb-5 font-mono text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3 sm:p-3.5 mb-5 font-mono text-xs">
           <div>
             <span className="text-[10px] text-slate-500 block uppercase">Customer:</span>
             <span className="font-bold text-navy-900 truncate block">{sampleCertificate.customer}</span>
@@ -80,7 +80,7 @@ export default function CertificateModal({ isOpen, onClose, onOpenQuoteModal }) 
 
         {/* Laboratory Inspection Results Table */}
         <div className="border border-slate-300 rounded-lg overflow-hidden mb-5">
-          <div className="bg-navy-900 text-white font-mono text-xs font-bold px-4 py-2 flex justify-between">
+          <div className="bg-navy-900 text-white font-mono text-xs font-bold px-3 sm:px-4 py-2 flex flex-wrap justify-between gap-1">
             <span>METALLURGICAL TEST RESULTS</span>
             <span>STANDARD: ASTM E18 / ASTM E384</span>
           </div>

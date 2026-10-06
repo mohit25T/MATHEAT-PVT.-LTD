@@ -65,16 +65,16 @@ export default function TrustStrip() {
           {trustPillars.map((item, idx) => (
             <div
               key={idx}
-              className="flex items-start gap-3 p-3 rounded-xl bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange shadow-md hover:shadow-xl transition-all group"
+              className="flex items-start gap-3 p-3 rounded-xl bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange shadow-md hover:shadow-xl transition-all group overflow-hidden"
             >
               <div className="shrink-0 p-2 bg-slate-100 border border-slate-300 rounded-lg group-hover:bg-orange-50 group-hover:border-heat-orange/50 transition-colors">
                 {item.icon}
               </div>
-              <div>
-                <h4 className="font-mono text-xs font-bold tracking-wider text-navy-900 uppercase">
+              <div className="min-w-0 flex-1">
+                <h4 className="font-mono text-xs font-bold tracking-wider text-navy-900 uppercase break-words">
                   {item.title}
                 </h4>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed break-words">
                   {item.desc}
                 </p>
               </div>

@@ -39,22 +39,22 @@ export default function FurnaceVisualization() {
         </div>
 
         {/* Real-Time Telemetry HUD Badges */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-5">
           {telemetryHUD.map((hud, idx) => {
             const Icon = hud.icon;
             return (
               <div
                 key={idx}
-                className="bg-navy-900/90 border border-navy-700/80 rounded-xl p-3 sm:p-3.5 relative group hover:border-heat-orange/60 transition-colors shadow-lg"
+                className="bg-navy-900/90 border border-navy-700/80 rounded-xl p-2.5 sm:p-3.5 relative group hover:border-heat-orange/60 transition-colors shadow-lg overflow-hidden"
               >
-                <div className="flex items-center justify-between text-slate-400 text-[10px] font-mono mb-2">
-                  <span>{hud.label}</span>
-                  <Icon className={`w-3.5 h-3.5 ${hud.color}`} />
+                <div className="flex items-center justify-between text-slate-400 text-[9px] sm:text-[10px] font-mono mb-1.5 gap-1">
+                  <span className="truncate">{hud.label}</span>
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${hud.color}`} />
                 </div>
-                <div className={`text-xl sm:text-2xl font-mono font-extrabold ${hud.color} tracking-tight`}>
+                <div className={`text-base sm:text-xl lg:text-2xl font-mono font-extrabold ${hud.color} tracking-tight break-words`}>
                   {hud.value}
                 </div>
-                <div className="text-[10px] font-mono text-slate-400 mt-1">
+                <div className="text-[9px] sm:text-[10px] font-mono text-slate-400 mt-1 break-words leading-tight">
                   {hud.unit}
                 </div>
               </div>
@@ -63,19 +63,19 @@ export default function FurnaceVisualization() {
         </div>
 
         {/* Main Furnace Visual Centerpiece */}
-        <div className="bg-navy-900/70 border border-navy-700 rounded-2xl p-4 sm:p-5 shadow-2xl relative">
+        <div className="bg-navy-900/70 border border-navy-700 rounded-2xl p-3.5 sm:p-5 shadow-2xl relative">
           
           {/* Top Status Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-navy-800 gap-3 font-mono text-xs">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-navy-800 gap-2 font-mono text-xs">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="flex items-center gap-1.5 text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 LIVE CYCLE ACTIVE
               </span>
-              <span className="text-slate-500">|</span>
-              <span className="text-slate-300">RECIPE: CARBURIZING + DIRECT QUENCH</span>
+              <span className="text-slate-500 hidden sm:inline">|</span>
+              <span className="text-slate-300 break-words">RECIPE: CARBURIZING + DIRECT QUENCH</span>
             </div>
-            <div className="text-slate-400 text-[11px]">
+            <div className="text-slate-400 text-[10px] sm:text-[11px]">
               CHAMBER UNIFORMITY: <span className="text-heat-orange font-bold">± 2.8°C (AMS 2750 Compliant)</span>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function FurnaceVisualization() {
               </div>
 
               {/* Callout Footer */}
-              <div className="mt-3 pt-3 border-t border-navy-800 flex items-center justify-between text-xs font-mono text-slate-400">
+              <div className="mt-3 pt-3 border-t border-navy-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-slate-400">
                 <span>PYROMETRY: THERMOCOUPLE TYPE-S</span>
                 <span className="text-heat-orange font-bold">ATMOSPHERE: ENDO GAS + PROPANE</span>
               </div>
@@ -157,19 +157,19 @@ export default function FurnaceVisualization() {
 
               {/* Engineering Recipe Specifications */}
               <div className="space-y-2 font-mono text-xs">
-                <div className="flex justify-between py-2 border-b border-navy-800 text-slate-300">
+                <div className="flex flex-wrap justify-between items-center py-2 border-b border-navy-800 text-slate-300 gap-1">
                   <span className="text-slate-400">Primary Heating Rate:</span>
                   <span className="font-bold text-white">10°C – 15°C / MINUTE</span>
                 </div>
-                <div className="flex justify-between py-2 border-b border-navy-800 text-slate-300">
+                <div className="flex flex-wrap justify-between items-center py-2 border-b border-navy-800 text-slate-300 gap-1">
                   <span className="text-slate-400">Target Soaking Temp:</span>
                   <span className="font-bold text-heat-orange">850°C ± 3°C</span>
                 </div>
-                <div className="flex justify-between py-2 border-b border-navy-800 text-slate-300">
+                <div className="flex flex-wrap justify-between items-center py-2 border-b border-navy-800 text-slate-300 gap-1">
                   <span className="text-slate-400">Quench Medium:</span>
                   <span className="font-bold text-white">ACCELERATED QUENCH OIL</span>
                 </div>
-                <div className="flex justify-between py-2 border-b border-navy-800 text-slate-300">
+                <div className="flex flex-wrap justify-between items-center py-2 border-b border-navy-800 text-slate-300 gap-1">
                   <span className="text-slate-400">Core Hardness Result:</span>
                   <span className="font-bold text-emerald-400">32 – 38 HRC TOUGH CORE</span>
                 </div>

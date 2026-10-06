@@ -4,6 +4,7 @@ import GearLineArt from './lineart/GearLineArt';
 import BearingLineArt from './lineart/BearingLineArt';
 import ShaftLineArt from './lineart/ShaftLineArt';
 import { ArrowRight, Filter, Layers, Check } from 'lucide-react';
+import SwipableCardCarousel from './common/SwipableCardCarousel';
 
 export default function ComponentGallery({ onOpenQuoteModal }) {
   const [filterCategory, setFilterCategory] = useState("ALL");
@@ -89,15 +90,18 @@ export default function ComponentGallery({ onOpenQuoteModal }) {
           </div>
         </div>
 
-        {/* Technical Component Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredComponents.map((comp) => (
+        {/* Technical Component Cards Swipable Carousel: 1 centered card looping every 3s */}
+        <SwipableCardCarousel
+          items={filteredComponents}
+          autoSwipeInterval={3000}
+          cardMaxWidth="max-w-2xl"
+          renderItem={(comp) => (
             <div
               key={comp.id}
-              className="bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 flex flex-col justify-between group"
+              className="bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 flex flex-col justify-between group h-full"
             >
               <div>
-                <div className="flex items-center justify-between font-mono text-[10px] text-slate-500 mb-3 pb-2 border-b border-slate-200">
+                <div className="flex flex-wrap items-center justify-between font-mono text-[10px] text-slate-500 mb-3 pb-2 border-b border-slate-200 gap-1">
                   <span className="uppercase text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-300">{comp.category}</span>
                   <span className="text-heat-orange font-bold">GRADE: {comp.steelGrade}</span>
                 </div>
@@ -115,13 +119,13 @@ export default function ComponentGallery({ onOpenQuoteModal }) {
                 <div className="space-y-2 font-mono text-xs pt-2">
                   <div className="bg-slate-100 p-2.5 rounded border border-slate-300">
                     <span className="text-[10px] text-slate-500 block uppercase font-bold">Typical Treatment:</span>
-                    <span className="font-semibold text-navy-900">{comp.typicalTreatment}</span>
+                    <span className="font-semibold text-navy-900 break-words">{comp.typicalTreatment}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-slate-200 text-slate-600">
+                  <div className="flex flex-wrap justify-between py-1 border-b border-slate-200 text-slate-600 gap-1">
                     <span className="text-[11px] font-medium">Target Hardness:</span>
                     <span className="font-bold text-navy-900">{comp.targetHardness}</span>
                   </div>
-                  <div className="flex justify-between py-1 text-slate-600">
+                  <div className="flex flex-wrap justify-between py-1 text-slate-600 gap-1">
                     <span className="text-[11px] font-medium">Effective Case Depth:</span>
                     <span className="font-bold text-heat-orange">{comp.effectiveCaseDepth}</span>
                   </div>
@@ -132,15 +136,15 @@ export default function ComponentGallery({ onOpenQuoteModal }) {
               <div className="mt-5 pt-3 border-t border-slate-300">
                 <button
                   onClick={onOpenQuoteModal}
-                  className="w-full py-2 bg-slate-100 hover:bg-navy-900 hover:text-white text-navy-900 border border-slate-300 rounded font-mono text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full py-2 bg-slate-100 hover:bg-navy-900 hover:text-white text-navy-900 border border-slate-300 rounded font-mono text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>SUBMIT RFQ FOR THIS PART</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        />
 
       </div>
     </section>

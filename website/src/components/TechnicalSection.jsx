@@ -1,6 +1,7 @@
 import React from 'react';
 import { technicalCards } from '../data/specs';
 import { Sliders, Cpu, Activity, Database, CheckSquare, Layers } from 'lucide-react';
+import SwipableCardCarousel from './common/SwipableCardCarousel';
 
 export default function TechnicalSection() {
   const cardIcons = [Sliders, Cpu, Activity, Database, CheckSquare, Layers];
@@ -26,26 +27,30 @@ export default function TechnicalSection() {
           </p>
         </div>
 
-        {/* 6 Technical Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {technicalCards.map((card, idx) => {
-            const Icon = cardIcons[idx] || Cpu;
+        {/* 6 Technical Cards Swipable Carousel: 1 centered card looping every 3s */}
+        <SwipableCardCarousel
+          items={technicalCards}
+          autoSwipeInterval={3000}
+          isDark={true}
+          cardMaxWidth="max-w-2xl"
+          renderItem={(card, idx) => {
+            const Icon = cardIcons[idx % cardIcons.length] || Cpu;
             return (
               <div
                 key={card.id}
-                className="bg-[#0F223D] border-2 border-navy-700 hover:border-heat-orange border-t-4 border-t-heat-orange/70 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-xl hover:shadow-2xl flex flex-col justify-between group"
+                className="bg-[#0F223D] border-2 border-navy-700 hover:border-heat-orange border-t-4 border-t-heat-orange/70 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-xl hover:shadow-2xl flex flex-col justify-between group h-full"
               >
                 <div>
-                  <div className="flex items-center justify-between font-mono text-[10px] text-slate-400 mb-4 pb-2 border-b border-navy-800">
+                  <div className="flex flex-wrap items-center justify-between font-mono text-[10px] text-slate-400 mb-4 pb-2 border-b border-navy-800 gap-1">
                     <span className="text-heat-orange font-bold">SPEC 0{idx + 1} //</span>
                     <span className="text-slate-300 uppercase font-semibold">{card.tag}</span>
                   </div>
 
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2.5 rounded-lg bg-navy-950 border border-navy-700 text-heat-orange group-hover:scale-105 transition-transform">
+                    <div className="p-2.5 rounded-lg bg-navy-950 border border-navy-700 text-heat-orange group-hover:scale-105 transition-transform shrink-0">
                       <Icon className="w-5 h-5" />
                     </div>
-                    <h3 className="text-lg font-bold text-white group-hover:text-heat-orange transition-colors">
+                    <h3 className="text-lg font-bold text-white group-hover:text-heat-orange transition-colors break-words">
                       {card.title}
                     </h3>
                   </div>
@@ -57,17 +62,17 @@ export default function TechnicalSection() {
 
                 {/* Metric Strip */}
                 <div className="pt-3 border-t border-navy-800/80 font-mono">
-                  <div className="text-sm font-bold text-emerald-400">
+                  <div className="text-sm font-bold text-emerald-400 break-words">
                     {card.metric}
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5 truncate">
+                  <div className="text-[10px] text-slate-500 mt-0.5 break-words">
                     {card.submetric}
                   </div>
                 </div>
               </div>
             );
-          })}
-        </div>
+          }}
+        />
 
       </div>
     </section>

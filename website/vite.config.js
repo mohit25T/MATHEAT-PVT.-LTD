@@ -7,6 +7,11 @@ export default defineConfig({
   server: {
     port: 5174,
     strictPort: true,
-    host: true
+    host: true,
+    allowedHosts: [
+      'shudder-properly-alias.ngrok-free.dev',
+      '.ngrok-free.dev',
+      '.ngrok.io'
+    ]
   }
 });

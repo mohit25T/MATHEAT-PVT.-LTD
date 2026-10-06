@@ -103,7 +103,7 @@ export default function WhyMatheat({ onOpenQuoteModal }) {
 
               <div className="mt-4 pt-2.5 border-t border-slate-200 bg-slate-50 -mx-4 sm:-mx-5 -mb-4 sm:-mb-5 p-3 sm:p-3.5 rounded-b-xl border-t border-slate-300">
                 <span className="text-[10px] font-mono text-slate-500 block uppercase">Benchmark Metric:</span>
-                <span className="text-xs font-mono font-bold text-navy-900 group-hover:text-heat-orange transition-colors">
+                <span className="text-xs font-mono font-bold text-navy-900 group-hover:text-heat-orange transition-colors break-words block">
                   {p.stat}
                 </span>
               </div>

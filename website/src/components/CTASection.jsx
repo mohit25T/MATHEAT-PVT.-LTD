@@ -73,7 +73,7 @@ export default function CTASection({ onOpenQuoteModal }) {
               </div>
 
               {/* Status Badges */}
-              <div className="w-full mt-4 pt-3 border-t border-navy-800 flex justify-between text-[11px] font-mono">
+              <div className="w-full mt-4 pt-3 border-t border-navy-800 flex flex-wrap justify-between gap-1 text-[11px] font-mono">
                 <span className="text-slate-400">RAW: 20MnCr5</span>
                 <span className="text-heat-orange font-bold">HARDENED: 60 HRC</span>
               </div>

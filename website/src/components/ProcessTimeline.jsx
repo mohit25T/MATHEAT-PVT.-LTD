@@ -26,11 +26,11 @@ export default function ProcessTimeline() {
 
         {/* Step Selector Horizontal / Stepper Bar */}
         <div className="bg-white border-2 border-slate-400 rounded-xl p-3.5 sm:p-4 shadow-lg mb-5">
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-3 border-b border-slate-200 gap-2">
             <span className="font-mono text-xs font-bold text-navy-900 uppercase">
               SELECT STAGE TO INSPECT TELEMETRY & QC CHECKPOINT
             </span>
-            <span className="font-mono text-xs text-heat-orange font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+            <span className="font-mono text-xs text-heat-orange font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-200 self-start sm:self-auto shrink-0">
               ACTIVE STAGE: {processes[activeStepIndex].step} / 10
             </span>
           </div>
@@ -44,7 +44,7 @@ export default function ProcessTimeline() {
                 <button
                   key={proc.step}
                   onClick={() => setActiveStepIndex(index)}
-                  className={`p-2.5 rounded-lg text-left transition-all relative font-mono ${
+                  className={`p-2.5 rounded-lg text-left transition-all relative font-mono overflow-hidden ${
                     isActive
                       ? 'bg-navy-900 text-white border-2 border-heat-orange shadow-md'
                       : isPast
@@ -56,10 +56,10 @@ export default function ProcessTimeline() {
                     <span className={isActive ? 'text-heat-orange font-bold' : 'font-bold'}>
                       {proc.step}
                     </span>
-                    {isPast && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                    {isActive && <span className="w-2 h-2 rounded-full bg-heat-orange animate-ping" />}
+                    {isPast && <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />}
+                    {isActive && <span className="w-2 h-2 rounded-full bg-heat-orange animate-ping shrink-0" />}
                   </div>
-                  <div className="text-[11px] font-bold leading-tight line-clamp-2">
+                  <div className="text-[10px] sm:text-[11px] font-bold leading-tight line-clamp-2 break-words">
                     {proc.name}
                   </div>
                 </button>
@@ -112,16 +112,16 @@ export default function ProcessTimeline() {
                     ✓ {processes[activeStepIndex].checkpoint}
                   </span>
                 </div>
-                <div className="bg-navy-900/60 border border-navy-800 p-3 rounded font-mono text-xs">
+                <div className="bg-navy-900/60 border border-navy-800 p-3 rounded font-mono text-xs overflow-hidden">
                   <span className="text-slate-400 block text-[10px] uppercase">Telemetry Logger Tag:</span>
-                  <span className="text-heat-orange font-semibold mt-1 block truncate">
+                  <span className="text-heat-orange font-semibold mt-1 block break-words">
                     {processes[activeStepIndex].telemetry}
                   </span>
                 </div>
               </div>
 
               {/* Prev / Next Controls */}
-              <div className="flex items-center gap-3 pt-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-3">
                 <button
                   disabled={activeStepIndex === 0}
                   onClick={() => setActiveStepIndex((prev) => Math.max(0, prev - 1))}

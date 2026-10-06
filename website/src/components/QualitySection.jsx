@@ -1,6 +1,7 @@
 import React from 'react';
 import { qualityCapabilities } from '../data/specs';
 import { ShieldCheck, CheckCircle2, ChevronRight, Microscope, Target, Compass } from 'lucide-react';
+import SwipableCardCarousel from './common/SwipableCardCarousel';
 
 export default function QualitySection() {
   const qualityFlow = [
@@ -39,16 +40,16 @@ export default function QualitySection() {
             CONTINUOUS IN-LINE QUALITY CYCLE // SIX-POINT VERIFICATION
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
             {qualityFlow.map((node, i) => (
-              <div key={i} className="bg-slate-100 border-2 border-slate-300 rounded-xl p-3 relative group hover:border-heat-orange hover:bg-orange-50/20 transition-all">
-                <span className="text-[10px] font-mono font-bold text-heat-orange block mb-0.5">
+              <div key={i} className="bg-slate-100 border-2 border-slate-300 rounded-xl p-2.5 sm:p-3 relative group hover:border-heat-orange hover:bg-orange-50/20 transition-all overflow-hidden">
+                <span className="text-[9px] sm:text-[10px] font-mono font-bold text-heat-orange block mb-0.5">
                   STAGE {node.step}
                 </span>
-                <div className="text-sm font-bold text-navy-900 mb-0.5">
+                <div className="text-xs sm:text-sm font-bold text-navy-900 mb-0.5 break-words">
                   {node.name}
                 </div>
-                <div className="text-xs text-slate-600 leading-tight">
+                <div className="text-[11px] sm:text-xs text-slate-600 leading-tight break-words">
                   {node.desc}
                 </div>
                 {i < qualityFlow.length - 1 && (
@@ -61,12 +62,15 @@ export default function QualitySection() {
           </div>
         </div>
 
-        {/* Quality Capabilities & Laboratory Testing Equipment */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {qualityCapabilities.map((cap, idx) => (
+        {/* Quality Capabilities Swipable Carousel: 1 centered card looping every 3s */}
+        <SwipableCardCarousel
+          items={qualityCapabilities}
+          autoSwipeInterval={3000}
+          cardMaxWidth="max-w-2xl"
+          renderItem={(cap, idx) => (
             <div
               key={idx}
-              className="bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 flex flex-col justify-between group"
+              className="bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 flex flex-col justify-between group h-full"
             >
               <div>
                 {/* Custom Line Art Equipment Icon */}
@@ -79,9 +83,9 @@ export default function QualitySection() {
                   </svg>
                 </div>
 
-                <div className="flex items-center justify-between font-mono text-[11px] text-slate-500 mb-1">
+                <div className="flex flex-wrap items-center justify-between font-mono text-[10px] sm:text-[11px] text-slate-500 mb-1 gap-1">
                   <span className="font-bold">CAPABILITY 0{idx + 1}</span>
-                  <span className="text-heat-orange font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{cap.standard}</span>
+                  <span className="text-heat-orange font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shrink-0">{cap.standard}</span>
                 </div>
 
                 <h3 className="text-lg font-extrabold text-navy-900 mb-2">
@@ -103,8 +107,8 @@ export default function QualitySection() {
                 <span>NABL CALIBRATED & VERIFIED</span>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        />
 
       </div>
     </section>

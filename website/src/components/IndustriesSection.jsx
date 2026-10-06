@@ -4,6 +4,7 @@ import GearLineArt from './lineart/GearLineArt';
 import BearingLineArt from './lineart/BearingLineArt';
 import ShaftLineArt from './lineart/ShaftLineArt';
 import { ArrowRight, CheckCircle2, ChevronRight } from 'lucide-react';
+import SwipableCardCarousel from './common/SwipableCardCarousel';
 
 export default function IndustriesSection({ onOpenQuoteModal }) {
   const [activeCategory, setActiveCategory] = useState("all");
@@ -69,12 +70,15 @@ export default function IndustriesSection({ onOpenQuoteModal }) {
           </div>
         </div>
 
-        {/* 10 Industries Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {industries.map((ind) => (
+        {/* 10 Industries Swipable Carousel: 1 centered card looping every 3s */}
+        <SwipableCardCarousel
+          items={industries}
+          autoSwipeInterval={3000}
+          cardMaxWidth="max-w-2xl"
+          renderItem={(ind) => (
             <div
               key={ind.id}
-              className="bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 flex flex-col justify-between group"
+              className="bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 flex flex-col justify-between group h-full"
             >
               <div>
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-200">
@@ -117,22 +121,22 @@ export default function IndustriesSection({ onOpenQuoteModal }) {
               </div>
 
               {/* Critical Metric & Action */}
-              <div className="mt-5 pt-4 border-t border-slate-300 flex items-center justify-between">
-                <div className="text-[10px] font-mono text-slate-600 max-w-[200px] truncate bg-slate-100 px-2 py-1 rounded border border-slate-200">
+              <div className="mt-5 pt-4 border-t border-slate-300 flex items-center justify-between gap-2">
+                <div className="text-[10px] font-mono text-slate-600 flex-1 min-w-0 truncate bg-slate-100 px-2 py-1 rounded border border-slate-200">
                   <span className="text-heat-orange font-bold">CRITICAL: </span>
                   {ind.criticalFactors}
                 </div>
                 <button
                   onClick={onOpenQuoteModal}
-                  className="text-navy-900 hover:text-heat-orange p-1 transition-colors"
+                  className="text-navy-900 hover:text-heat-orange p-1 transition-colors shrink-0"
                   title="Enquire about this sector"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        />
 
       </div>
     </section>

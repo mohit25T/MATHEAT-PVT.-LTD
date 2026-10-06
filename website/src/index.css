@@ -27,6 +27,14 @@ pre {
   font-family: 'Times New Roman', Times, serif !important;
 }
 
+html {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -34,13 +42,56 @@ body {
   color: #1E293B;
   font-family: 'Times New Roman', Times, serif !important;
   overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
 }
 
-/* Global Font Increase: arbitrary small sizes +4px */
-[class*="text-[9px]"] { font-size: 13px !important; }
-[class*="text-[10px]"] { font-size: 14px !important; }
-[class*="text-[11px]"] { font-size: 15px !important; }
-[class*="text-[12px]"] { font-size: 16px !important; }
+/* Universal box containment & text wrapping to prevent any text overflow on mobile */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  min-width: 0; /* Prevents flex and grid children from overflowing parents */
+}
+
+/* Ensure paragraph and heading text cleanly breaks without breaking whitespace-nowrap elements */
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Protect buttons, badges and nowrap elements from having their words broken */
+.whitespace-nowrap,
+button.whitespace-nowrap,
+span.whitespace-nowrap,
+div.whitespace-nowrap,
+a.whitespace-nowrap {
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-wrap: normal !important;
+  word-break: normal !important;
+  min-width: max-content !important;
+}
+
+/* Mobile Responsive Font Scaling & Anti-Overflow Protection */
+@media (max-width: 640px) {
+  /* Scale font classes on mobile so text fits comfortably inside cards and boxes */
+  .text-xs { font-size: 0.75rem !important; line-height: 1.15rem !important; }   /* 12px */
+  .text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }  /* 14px */
+  .text-base { font-size: 1rem !important; line-height: 1.45rem !important; }    /* 16px */
+  .text-lg { font-size: 1.125rem !important; line-height: 1.5rem !important; }   /* 18px */
+  .text-xl { font-size: 1.25rem !important; line-height: 1.55rem !important; }   /* 20px */
+  .text-2xl { font-size: 1.4rem !important; line-height: 1.65rem !important; }   /* 22.4px */
+  .text-3xl { font-size: 1.65rem !important; line-height: 1.85rem !important; }  /* 26.4px */
+  .text-4xl { font-size: 1.95rem !important; line-height: 2.15rem !important; }  /* 31.2px */
+  .text-5xl { font-size: 2.25rem !important; line-height: 1.15 !important; }     /* 36px */
+  .text-6xl { font-size: 2.75rem !important; line-height: 1.1 !important; }      /* 44px */
+
+  [class*="text-[9px]"] { font-size: 9px !important; line-height: 12px !important; }
+  [class*="text-[10px]"] { font-size: 10px !important; line-height: 13px !important; }
+  [class*="text-[11px]"] { font-size: 11px !important; line-height: 14px !important; }
+  [class*="text-[12px]"] { font-size: 12px !important; line-height: 15px !important; }
+}
 
 /* Refined Lower Shade for Text on Light Backgrounds (Smooth Dark Charcoal - High Legibility without Eye Strain) */
 .text-slate-700,

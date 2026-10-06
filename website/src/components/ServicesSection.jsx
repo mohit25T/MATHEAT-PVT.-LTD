@@ -4,6 +4,7 @@ import { ArrowRight, Flame, ShieldAlert, CheckCircle2, X, Sliders, Layers } from
 import GearLineArt from './lineart/GearLineArt';
 import BearingLineArt from './lineart/BearingLineArt';
 import ShaftLineArt from './lineart/ShaftLineArt';
+import SwipableCardCarousel from './common/SwipableCardCarousel';
 
 export default function ServicesSection({ onOpenQuoteModal }) {
   const [selectedService, setSelectedService] = useState(null);
@@ -99,16 +100,19 @@ export default function ServicesSection({ onOpenQuoteModal }) {
           </div>
         </div>
 
-        {/* 9 Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services.map((service, index) => (
+        {/* 9 Services Swipable Carousel: 1 centered card looping every 3s */}
+        <SwipableCardCarousel
+          items={services}
+          autoSwipeInterval={3000}
+          cardMaxWidth="max-w-2xl"
+          renderItem={(service, index) => (
             <div
               key={service.id}
-              className="bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 group flex flex-col justify-between"
+              className="bg-white border-2 border-slate-400 hover:border-heat-orange border-t-4 border-t-navy-900 hover:border-t-heat-orange rounded-xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 group flex flex-col justify-between h-full"
             >
               <div>
                 {/* Card Top: Number & Category */}
-                <div className="flex items-center justify-between font-mono text-xs text-slate-400 mb-4 pb-2 border-b border-slate-200">
+                <div className="flex flex-wrap items-center justify-between font-mono text-xs text-slate-400 mb-4 pb-2 border-b border-slate-200 gap-1">
                   <span className="text-heat-orange font-bold">0{index + 1} //</span>
                   <span className="uppercase tracking-wider text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
                     {service.category}
@@ -155,28 +159,28 @@ export default function ServicesSection({ onOpenQuoteModal }) {
               </div>
 
               {/* Bottom Action: Learn More */}
-              <div className="pt-4 mt-5 border-t border-slate-300 flex items-center justify-between">
+              <div className="pt-4 mt-5 border-t border-slate-300 flex flex-wrap items-center justify-between gap-2">
                 <button
                   onClick={() => setSelectedService(service)}
-                  className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-navy-900 group-hover:text-heat-orange transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-navy-900 group-hover:text-heat-orange transition-colors shrink-0"
                 >
                   <span>TECHNICAL DATASHEET</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1 shrink-0" />
                 </button>
-                <span className="text-[10px] font-mono font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
+                <span className="text-[10px] font-mono font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-300 shrink-0">
                   {service.parameters?.tempRange || "Controlled Cycle"}
                 </span>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        />
 
       </div>
 
       {/* Technical Service Modal / Drawer */}
       {selectedService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white border border-navy-900/20 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-navy-900/20 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-6 lg:p-8 relative">
             
             {/* Close Button */}
             <button

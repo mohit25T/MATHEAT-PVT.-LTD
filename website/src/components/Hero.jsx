@@ -18,8 +18,8 @@ export default function Hero({ onOpenQuoteModal, onNavigate }) {
           {/* Left Hero Column: Headline, Company Description & CTA Buttons (45-55% width) */}
           <div className="lg:col-span-5 xl:col-span-5 space-y-3.5">
             {/* Eyebrow badge */}
-            <div className="inline-flex items-center gap-2 bg-navy-900 text-white px-3 py-1.5 rounded text-xs font-mono tracking-widest uppercase shadow-sm">
-              <Flame className="w-3.5 h-3.5 text-heat-orange animate-pulse" />
+            <div className="inline-flex flex-wrap items-center gap-2 bg-navy-900 text-white px-3 py-1.5 rounded text-xs font-mono tracking-widest uppercase shadow-sm max-w-full">
+              <Flame className="w-3.5 h-3.5 text-heat-orange animate-pulse shrink-0" />
               <span>PRECISION METALLURGY</span>
               <span className="text-slate-400">|</span>
               <span className="text-heat-orange font-bold">MATHEAT PVT. LTD.</span>
@@ -39,18 +39,18 @@ export default function Hero({ onOpenQuoteModal, onNavigate }) {
             </p>
 
             {/* Technical Triad Tags */}
-            <div className="grid grid-cols-3 gap-2 pt-1 pb-1 max-w-md font-mono text-xs">
-              <div className="border-2 border-slate-300 bg-white p-2.5 rounded-lg text-center shadow-xs">
-                <span className="block text-[10px] text-slate-500 uppercase font-bold">Hardness</span>
-                <span className="font-bold text-navy-900">UNIFORM</span>
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pt-1 pb-1 max-w-lg font-mono text-xs">
+              <div className="border-2 border-slate-300 bg-white px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-lg text-center shadow-xs overflow-hidden">
+                <span className="block text-[8.5px] sm:text-[10px] text-slate-500 uppercase font-bold whitespace-nowrap">Hardness</span>
+                <span className="font-bold text-navy-900 text-xs sm:text-sm block whitespace-nowrap">UNIFORM</span>
               </div>
-              <div className="border-2 border-slate-300 bg-white p-2.5 rounded-lg text-center shadow-xs">
-                <span className="block text-[10px] text-slate-500 uppercase font-bold">Microstructure</span>
-                <span className="font-bold text-navy-900">STRENGTH</span>
+              <div className="border-2 border-slate-300 bg-white px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-lg text-center shadow-xs overflow-hidden">
+                <span className="block text-[8px] sm:text-[10px] text-slate-500 uppercase font-bold whitespace-nowrap">Microstructure</span>
+                <span className="font-bold text-navy-900 text-xs sm:text-sm block whitespace-nowrap">STRENGTH</span>
               </div>
-              <div className="border-2 border-slate-300 bg-white p-2.5 rounded-lg text-center shadow-xs">
-                <span className="block text-[10px] text-slate-500 uppercase font-bold">Governance</span>
-                <span className="font-bold text-heat-orange">PRECISION</span>
+              <div className="border-2 border-slate-300 bg-white px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-lg text-center shadow-xs overflow-hidden">
+                <span className="block text-[8.5px] sm:text-[10px] text-slate-500 uppercase font-bold whitespace-nowrap">Governance</span>
+                <span className="font-bold text-heat-orange text-xs sm:text-sm block whitespace-nowrap">PRECISION</span>
               </div>
             </div>
 
@@ -73,9 +73,9 @@ export default function Hero({ onOpenQuoteModal, onNavigate }) {
             </div>
 
             {/* Micro Technical Guarantee */}
-            <div className="pt-2 flex items-center gap-4 text-xs font-mono text-slate-500">
+            <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-mono text-slate-500">
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                 CQI-9 / AMS 2750 Pyrometry Standards
               </span>
             </div>
@@ -85,10 +85,10 @@ export default function Hero({ onOpenQuoteModal, onNavigate }) {
           <div className="lg:col-span-7 xl:col-span-7 space-y-2.5">
             {/* Mode Switcher Pills (Realistic Furnace / Real Footage / 2D CAD) */}
             <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
-              <div className="inline-flex p-1 rounded-lg bg-slate-200 border border-slate-300 shadow-inner">
+              <div className="flex flex-wrap p-1 rounded-lg bg-slate-200 border border-slate-300 shadow-inner gap-1 max-w-full">
                 <button
                   onClick={() => setMediaMode('furnace')}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded text-[10px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
                     mediaMode === 'furnace'
                       ? 'bg-navy-950 text-white shadow'
                       : 'text-slate-600 hover:text-navy-900'
@@ -101,7 +101,7 @@ export default function Hero({ onOpenQuoteModal, onNavigate }) {
 
                 <button
                   onClick={() => setMediaMode('cinema')}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded text-[10px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
                     mediaMode === 'cinema'
                       ? 'bg-navy-950 text-white shadow'
                       : 'text-slate-600 hover:text-navy-900'
@@ -114,7 +114,7 @@ export default function Hero({ onOpenQuoteModal, onNavigate }) {
 
                 <button
                   onClick={() => setMediaMode('vector')}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded text-[10px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 ${
                     mediaMode === 'vector'
                       ? 'bg-navy-950 text-white shadow'
                       : 'text-slate-600 hover:text-navy-900'

@@ -38,26 +38,26 @@ export default function Navbar({ activePage = "home", onNavigate, onOpenQuoteMod
   return (
     <>
       {/* Top Engineering Micro-Bar */}
-      <div className="bg-navy-950 text-slate-300 text-[11px] font-mono border-b border-navy-800 py-1 px-3 sm:px-6 hidden md:flex items-center justify-between w-full">
-        <div className="flex items-center gap-6">
-          <span className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+      <div className="bg-navy-950 text-slate-300 text-[10.5px] font-mono border-b border-navy-800 py-1 px-3 sm:px-6 hidden md:flex items-center justify-between w-full max-w-full overflow-hidden">
+        <div className="flex items-center gap-3 lg:gap-4 shrink-0 min-w-0">
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
             FACILITY OPERATIONAL // 24x7 CONTINUOUS FURNACE CYCLES
           </span>
-          <span className="text-slate-400 hidden lg:inline">
+          <span className="text-slate-400 hidden 2xl:inline whitespace-nowrap">
             LOCATION: RAJKOT, GUJARAT, INDIA
           </span>
         </div>
-        <div className="flex items-center gap-6">
-          <span className="flex items-center gap-1.5 text-slate-300">
-            <ShieldCheck className="w-3.5 h-3.5 text-heat-orange" />
-            ISO & CQI-9 PYROMETRY COMPLIANT
+        <div className="flex items-center gap-3 lg:gap-4 shrink-0">
+          <span className="items-center gap-1.5 text-slate-300 whitespace-nowrap hidden xl:inline-flex">
+            <ShieldCheck className="w-3.5 h-3.5 text-heat-orange shrink-0" />
+            ISO &amp; CQI-9 PYROMETRY COMPLIANT
           </span>
           <a
             href="tel:+912812000000"
-            className="flex items-center gap-1.5 text-heat-orange hover:underline font-semibold"
+            className="flex items-center gap-1.5 text-heat-orange hover:underline font-semibold whitespace-nowrap shrink-0"
           >
-            <Phone className="w-3 h-3" />
+            <Phone className="w-3 h-3 shrink-0" />
             PLANT DESK: {companyInfo.contact.phone.split('/')[0]}
           </a>
         </div>
@@ -67,32 +67,32 @@ export default function Navbar({ activePage = "home", onNavigate, onOpenQuoteMod
       <header
         className={`sticky top-0 z-50 transition-all duration-300 w-full ${
           scrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200 py-2.5'
-            : 'bg-white/90 backdrop-blur-sm border-b border-slate-200/80 py-3.5'
+            ? 'bg-white/95 backdrop-blur-md shadow-md border-b border-slate-200 py-2'
+            : 'bg-white/90 backdrop-blur-sm border-b border-slate-200/80 py-2.5'
         }`}
       >
-        <div className="w-full px-3 sm:px-6 flex items-center justify-between">
+        <div className="w-full px-3 sm:px-6 flex items-center justify-between gap-2">
           {/* Authentic Logo - strictly preserved proportions & colors */}
           <button
             onClick={() => handleLinkClick("home")}
-            className="flex items-center gap-3 group text-left"
+            className="flex items-center gap-2 group text-left shrink-0"
           >
             <img
               src="/matheat_logo.png"
               alt="MATHEAT PVT. LTD. Logo"
-              className="h-11 sm:h-13 md:h-14 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+              className="h-10 sm:h-12 md:h-13 w-auto object-contain transition-transform group-hover:scale-[1.02]"
             />
           </button>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+          {/* Desktop Navigation Links - whitespace-nowrap ensures words never break a single letter down */}
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 shrink-0">
             {navLinks.map((link) => {
               const isActive = activePage === link.id;
               return (
                 <button
                   key={link.id}
                   onClick={() => handleLinkClick(link.id)}
-                  className={`px-2.5 xl:px-3 py-1.5 text-med font-medium rounded transition-all uppercase tracking-wider font-mono relative ${
+                  className={`px-1.5 xl:px-2.5 py-1.5 text-[11px] xl:text-xs font-semibold rounded transition-all uppercase tracking-normal xl:tracking-wider font-mono whitespace-nowrap shrink-0 relative ${
                     isActive
                       ? 'text-heat-orange font-bold bg-orange-50 border border-orange-200'
                       : 'text-slate-700 hover:text-heat-orange hover:bg-slate-50'
@@ -100,7 +100,7 @@ export default function Navbar({ activePage = "home", onNavigate, onOpenQuoteMod
                 >
                   {link.name}
                   {isActive && (
-                    <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-heat-orange rounded-full"></span>
+                    <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-heat-orange rounded-full"></span>
                   )}
                 </button>
               );
@@ -108,10 +108,10 @@ export default function Navbar({ activePage = "home", onNavigate, onOpenQuoteMod
           </nav>
 
           {/* Right Action: GET A QUOTE Button */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-3 shrink-0">
             <button
               onClick={onOpenQuoteModal}
-              className="relative inline-flex items-center gap-2 bg-heat-orange hover:bg-heat-deep text-white font-mono text-xs font-bold px-3.5 py-2 rounded shadow-md hover:shadow-lg transition-all group active:scale-95"
+              className="relative inline-flex items-center gap-1.5 bg-heat-orange hover:bg-heat-deep text-white font-mono text-xs font-bold px-3 py-2 rounded shadow-md hover:shadow-lg transition-all group active:scale-95 whitespace-nowrap shrink-0"
             >
               <span>GET A QUOTE</span>
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
