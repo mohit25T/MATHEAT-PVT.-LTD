@@ -118,18 +118,22 @@ export const OperatorPage = () => {
     const handleSync = () => loadData();
     window.addEventListener('matheat_data_invalidated', handleSync);
     window.addEventListener('focus', handleSync);
+    // Real-time 5s polling keeps mobile, tablet, and desktop 100% in sync without manual refresh
+    const pollInterval = setInterval(loadData, 5000);
+
     return () => {
       window.removeEventListener('matheat_data_invalidated', handleSync);
       window.removeEventListener('focus', handleSync);
+      clearInterval(pollInterval);
     };
   }, []);
 
-  // Filter batches for selected furnace
+  // Filter batches strictly for selected furnace
   const furnaceBatches = batches.filter(
-    b => (b.furnace?.furnaceId || b.furnaceId) === selectedFurnaceId || !b.furnaceId
+    b => (b.furnace?.furnaceId || b.furnaceId) === selectedFurnaceId
   );
 
-  const currentBatch = batches.find(b => (b.batchId || b._id) === selectedBatchId) || furnaceBatches[0] || batches[0];
+  const currentBatch = furnaceBatches.find(b => (b.batchId || b._id) === selectedBatchId) || furnaceBatches[0] || null;
 
   useEffect(() => {
     if (currentBatch) {
@@ -224,6 +228,13 @@ export const OperatorPage = () => {
         setActiveRunPhase('LOADING');
         setCurrentPhase('LOADING');
       }
+    } else {
+      setSelectedBatchId(null);
+      setConfirmedPhases([]);
+      setActiveRunPhase('LOADING');
+      setCurrentPhase('LOADING');
+      setSubmitSuccess(false);
+      setErrorMessage('');
     }
   }, [currentBatch?.batchId, currentBatch?.status, currentBatch?.currentPhase, currentBatch?.confirmedPhases, selectedFurnaceId]);
 
@@ -665,12 +676,29 @@ export const OperatorPage = () => {
           </div>
         </div>
       ) : (
-        <div className={`p-8 text-center rounded-2xl border ${isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
-          <Flame className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-          <h3 className="text-sm font-black">No Active Heat Dispatched to {selectedFurnaceId}</h3>
-          <p className="text-xs text-slate-500 mt-1">Load a batch from the Batches page or select another furnace unit.</p>
+        <div className={`p-10 rounded-2xl border text-center space-y-4 shadow-sm ${
+          isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+        }`}>
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+            <Flame className="h-8 w-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black tracking-tight">Furnace {selectedFurnaceId} is Idle</h2>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              No heat treatment batch is currently assigned or active on this furnace. Clean database ready for production.
+            </p>
+          </div>
+          <div className="pt-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              FURNACE READY FOR PRODUCTION
+            </span>
+          </div>
         </div>
       )}
+
+      {currentBatch && (
+        <>
 
       {/* OVERRIDE NOTICE BANNER */}
       {overrideNotice && (
@@ -1272,6 +1300,8 @@ export const OperatorPage = () => {
           )}
         </div>
       )}
+    </>
+  )}
 
       {/* ADMIN / SUPERVISOR AUTHORIZATION MODAL */}
       {adminModalOpen && (

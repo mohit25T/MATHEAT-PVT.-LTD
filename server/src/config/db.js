@@ -4,6 +4,19 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 let mongoMemoryServer = null;
 
 export const connectDB = async () => {
+  // In test environment, use an isolated in-memory database to protect live MongoDB Atlas
+  if (process.env.NODE_ENV === 'test') {
+    if (!mongoMemoryServer) {
+      mongoMemoryServer = await MongoMemoryServer.create({
+        instance: { dbName: 'matheat_test_memory' }
+      });
+    }
+    const memoryUri = mongoMemoryServer.getUri();
+    const conn = await mongoose.connect(memoryUri);
+    console.log(`[DB] Connected to Isolated Test In-Memory MongoDB: ${memoryUri}`);
+    return conn;
+  }
+
   const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
   if (uri) {
