@@ -140,7 +140,7 @@ export const LoginPage = ({ onLoginSuccess }) => {
                     autoFocus
                     value={form.username}
                     onChange={(e) => setForm({ ...form, username: e.target.value })}
-                    placeholder="e.g. admin"
+                    placeholder="Enter your username"
                     className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm font-semibold placeholder-slate-600 focus:outline-none focus:border-orange-600 focus:ring-1 focus:ring-orange-600/30 transition-all"
                   />
                 </div>
@@ -194,16 +194,6 @@ export const LoginPage = ({ onLoginSuccess }) => {
                 )}
               </button>
             </form>
-          </div>
-
-          {/* Admin hint */}
-          <div className="mt-4 p-3 rounded-xl bg-slate-900/50 border border-slate-800/60 text-center">
-            <p className="text-slate-600 text-[10px] font-mono uppercase tracking-widest mb-1.5">Default Admin Login</p>
-            <div className="flex items-center justify-center gap-3 text-[11px] font-mono">
-              <span className="text-slate-500">user: <span className="text-orange-400 font-bold">admin</span></span>
-              <span className="text-slate-700">·</span>
-              <span className="text-slate-500">pass: <span className="text-orange-400 font-bold">admin@123</span></span>
-            </div>
           </div>
 
 

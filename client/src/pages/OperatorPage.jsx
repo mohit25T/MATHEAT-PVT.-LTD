@@ -261,25 +261,7 @@ export const OperatorPage = () => {
         setAdminAuthError(res?.message || 'Invalid admin password. Authorization failed.');
       }
     } catch (err) {
-      // Offline / fallback fallback check for default seeded admin credentials ('admin@123')
-      if (adminPasswordInput === 'admin@123') {
-        const authorizedBy = 'Plant Supervisor (MATHEAT Admin)';
-        setUnlockedPhases(prev => ({
-          ...prev,
-          [pendingTargetPhase]: {
-            unlocked: true,
-            authorizedBy,
-            unlockedAt: new Date().toLocaleTimeString(),
-            reason: adminReasonInput
-          }
-        }));
-        setOverrideNotice(`Supervisor Override Active: Step [${pendingTargetPhase}] unlocked by ${authorizedBy}. Modifications enabled.`);
-        setCurrentPhase(pendingTargetPhase);
-        setAdminModalOpen(false);
-        setAdminPasswordInput('');
-      } else {
-        setAdminAuthError(err?.message || 'Invalid admin password. Only administrators can unlock confirmed steps.');
-      }
+      setAdminAuthError(err?.message || 'Invalid admin password. Only administrators can unlock confirmed steps.');
     } finally {
       setAdminAuthLoading(false);
     }
@@ -1330,7 +1312,7 @@ export const OperatorPage = () => {
                     type={showAdminPassword ? 'text' : 'password'}
                     value={adminPasswordInput}
                     onChange={(e) => setAdminPasswordInput(e.target.value)}
-                    placeholder="Enter Admin Password (e.g. admin@123)"
+                    placeholder="Enter Admin / Supervisor Password"
                     autoFocus
                     required
                     className="w-full text-base font-mono font-bold p-3 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-amber-500"
