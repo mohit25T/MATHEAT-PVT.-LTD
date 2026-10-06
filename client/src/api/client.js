@@ -352,7 +352,8 @@ export const authApi = {
   getUsers: () => request('GET', '/auth/users'),
   createUser: (userData) => request('POST', '/auth/users', userData),
   updateUser: (id, userData) => request('PUT', `/auth/users/${id}`, userData),
-  deleteUser: (id) => request('DELETE', `/auth/users/${id}`)
+  deleteUser: (id) => request('DELETE', `/auth/users/${id}`),
+  verifyAdminPassword: (data) => request('POST', '/auth/verify-admin-password', data)
 };
 
 // Alias for User Management
@@ -435,6 +436,7 @@ export const batchesApi = {
   loadFurnace: (id) => request('POST', `/batches/${id}/load-furnace`),
   startCycle: (id) => request('POST', `/batches/${id}/start-cycle`),
   recordCycle: (id, data) => request('POST', `/batches/${id}/record-cycle`, data),
+  update: (id, data) => request('PUT', `/batches/${id}`, data),
   delete: (id) => request('DELETE', `/batches/${id}`)
 };
 

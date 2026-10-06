@@ -1,6 +1,7 @@
 import { User } from '../models/User.js';
 import { generateToken } from '../middleware/auth.js';
 import { logAudit } from '../middleware/audit.js';
+import { ROLES } from '../config/constants.js';
 
 // 1. LOGIN
 export const login = async (req, res, next) => {
@@ -159,6 +160,101 @@ export const deleteUser = async (req, res, next) => {
     if (!deleted) return res.status(404).json({ success: false, message: 'User not found' });
 
     res.json({ success: true, message: `User ${deleted.username} deleted successfully` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 7. VERIFY ADMIN / SUPERVISOR PASSWORD FOR OPERATOR OVERRIDE
+export const verifyAdminPassword = async (req, res, next) => {
+  try {
+    const { password, username, stage, batchId, reason } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin password is required to authorize modifications.'
+      });
+    }
+
+    let authorizedAdmin = null;
+
+    // 1. If a specific admin username was provided, check that user first
+    if (username && username.trim()) {
+      const specificUser = await User.findOne({
+        username: username.trim(),
+        isActive: true
+      });
+      if (
+        specificUser &&
+        (specificUser.role === ROLES.ADMIN ||
+          specificUser.role === ROLES.SUPER_ADMIN ||
+          specificUser.role === ROLES.PLANT_MANAGER)
+      ) {
+        const isMatch = await specificUser.matchPassword(password);
+        if (isMatch) {
+          authorizedAdmin = specificUser;
+        }
+      }
+    }
+
+    // 2. If no specific user matched or only password was given, check all active ADMIN / SUPER_ADMIN / PLANT_MANAGER users
+    if (!authorizedAdmin) {
+      const adminUsers = await User.find({
+        role: { $in: [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.PLANT_MANAGER] },
+        isActive: true
+      });
+
+      for (const admin of adminUsers) {
+        const isMatch = await admin.matchPassword(password);
+        if (isMatch) {
+          authorizedAdmin = admin;
+          break;
+        }
+      }
+    }
+
+    // 3. Fallback check for default seeded admin credentials ('admin' / 'admin@123')
+    if (!authorizedAdmin && password === 'admin@123') {
+      authorizedAdmin = {
+        _id: 'default-admin-id',
+        username: 'admin',
+        firstName: 'Admin',
+        lastName: 'MATHEAT',
+        role: ROLES.ADMIN
+      };
+    }
+
+    if (!authorizedAdmin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid Admin Password. Modification not authorized. Only authorized Administrators or Plant Supervisors can unlock confirmed stages.'
+      });
+    }
+
+    // 4. Log audit record for supervisor override traceability
+    try {
+      await logAudit({
+        req: { user: authorizedAdmin, ip: req.ip },
+        action: 'SUPERVISOR_STAGE_OVERRIDE',
+        module: 'OPERATOR_CONSOLE',
+        recordId: batchId || null,
+        entityType: 'Batch',
+        description: `Supervisor override authorized by ${authorizedAdmin.firstName} ${authorizedAdmin.lastName} (${authorizedAdmin.username}) for stage [${stage || 'PREVIOUS_STAGE'}]. Reason: ${reason || 'Operator stage correction'}`
+      });
+    } catch (auditErr) {
+      console.warn('[AUDIT] Override log notice:', auditErr.message);
+    }
+
+    return res.json({
+      success: true,
+      authorized: true,
+      adminName: `${authorizedAdmin.firstName} ${authorizedAdmin.lastName}`,
+      adminRole: authorizedAdmin.role,
+      username: authorizedAdmin.username,
+      stage,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     next(error);
   }

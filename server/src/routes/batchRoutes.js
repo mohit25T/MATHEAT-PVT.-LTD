@@ -12,6 +12,7 @@ router.post('/', batchController.create);
 router.post('/:id/load-furnace', batchController.loadFurnace);
 router.post('/:id/start-cycle', batchController.startCycle);
 router.post('/:id/record-cycle', batchController.recordCycle);
+router.put('/:id', batchController.update);
 router.delete('/:id', batchController.deleteBatch);
 
 export default router;

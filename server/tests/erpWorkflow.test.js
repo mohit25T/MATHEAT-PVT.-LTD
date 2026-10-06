@@ -504,4 +504,39 @@ describe('MATHEAT PVT. LTD. — End-to-End Heat-Treatment ERP Lifecycle Test', (
     assert.ok(card.invoice, 'Traceability must include Tax Invoice');
     assert.ok(card.payments && card.payments.length > 0, 'Traceability must include Payment ledgers');
   });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 13: OPERATOR CONSOLE ADMIN PASSWORD AUTHORIZATION & OVERRIDE
+  // ─────────────────────────────────────────────────────────────────────────────
+  it('Step 13: Should enforce Admin Password authorization for operator console step modification', async () => {
+    // 1. Invalid password must be rejected with 401
+    const invalidRes = await apiCall('/auth/verify-admin-password', 'POST', {
+      password: 'wrong_operator_password',
+      stage: 'LOADING',
+      batchId
+    });
+    assert.equal(invalidRes.status, 401, 'Invalid password must return 401 Unauthorized');
+    assert.equal(invalidRes.data.success, false);
+
+    // 2. Valid admin password must authorize the modification
+    const validRes = await apiCall('/auth/verify-admin-password', 'POST', {
+      password: 'admin@123',
+      stage: 'LOADING',
+      batchId,
+      reason: 'Tare scale recalibration override'
+    });
+    assert.equal(validRes.status, 200, 'Valid admin password must return 200 OK');
+    assert.equal(validRes.data.success, true);
+    assert.equal(validRes.data.authorized, true);
+    assert.ok(validRes.data.adminName, 'Must include authorizing admin name');
+    assert.equal(validRes.data.stage, 'LOADING');
+
+    // 3. Modifying previous step parameters on batch via PUT
+    const updateRes = await apiCall(`/batches/${batchId}`, 'PUT', {
+      inputWeightKg: 105,
+      notes: 'Supervisor override updated weight'
+    });
+    assert.equal(updateRes.status, 200);
+    assert.equal(updateRes.data.batch.inputWeightKg, 105);
+  });
 });

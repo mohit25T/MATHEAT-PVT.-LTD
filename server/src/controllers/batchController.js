@@ -689,3 +689,34 @@ export const recordCycle = async (req, res, next) => {
     });
   } catch (error) { next(error); }
 };
+
+// 7. UPDATE BATCH (Allows supervisor/operator to update batch details)
+export const update = async (req, res, next) => {
+  try {
+    const batch = await findBatchByIdOrCode(req.params.id);
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+
+    const allowedFields = [
+      'inputQuantity',
+      'inputWeightKg',
+      'outputQuantity',
+      'outputWeightKg',
+      'rejectionQuantity',
+      'rejectionWeightKg',
+      'scrapWeightKg',
+      'burningLossKg',
+      'actualTransferTimeSeconds',
+      'status',
+      'notes'
+    ];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        batch[field] = req.body[field];
+      }
+    });
+
+    await batch.save();
+    res.json({ success: true, batch });
+  } catch (error) { next(error); }
+};
