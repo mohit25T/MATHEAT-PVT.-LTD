@@ -183,25 +183,7 @@ export const OperatorPage = () => {
         return;
       }
 
-      // 2. Fallback to localStorage if present
-      const saved = localStorage.getItem(`matheat_confirmed_${bId}`);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setConfirmedPhases(parsed);
-            const phaseOrder = ['LOADING', 'HEATING', 'SOAKING', 'QUENCHING', 'TEMPERING', 'COMPLETE'];
-            const lastConfirmed = parsed[parsed.length - 1];
-            const nextIdx = phaseOrder.indexOf(lastConfirmed) + 1;
-            const nextPhase = nextIdx < phaseOrder.length ? phaseOrder[nextIdx] : 'COMPLETE';
-            setActiveRunPhase(nextPhase);
-            setCurrentPhase(nextPhase);
-            return;
-          }
-        } catch (e) {}
-      }
-
-      // 3. Fallback to inferring from batch status in DB
+      // 2. Fallback to inferring from batch status in MongoDB
       const st = currentBatch.status || 'PLANNED';
       if (st === 'HEATING') {
         setConfirmedPhases(['LOADING']);
@@ -398,9 +380,8 @@ export const OperatorPage = () => {
     setCurrentPhase(nextPhase);
 
     if (targetId) {
-      localStorage.setItem(`matheat_confirmed_${targetId}`, JSON.stringify(nextConfirmed));
       try {
-        // Persist to MongoDB backend so ALL client instances (localhost, live domains, tablets) stay 100% in sync!
+        // Persist directly to MongoDB backend so ALL client instances (localhost, live domains, tablets) stay 100% in sync!
         await api.batches.update(targetId, {
           status: nextPhase,
           currentPhase: nextPhase,

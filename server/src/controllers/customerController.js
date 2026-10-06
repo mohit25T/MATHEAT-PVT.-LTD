@@ -36,10 +36,6 @@ export const getAll = async (req, res, next) => {
       ];
     }
 
-    // Exclude legacy mock seed customers
-    filter.customerCode = { $nin: ['CUST-SKF', 'CUST-TATA'] };
-    filter.companyName = { $not: /skf|tata motors/i };
-
     const customers = await Customer.find(filter).sort({ createdAt: -1 });
     res.json({
       success: true,

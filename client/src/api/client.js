@@ -13,16 +13,31 @@
  */
 
 export const API_BASE_URL = (() => {
-  if (typeof window === 'undefined') return 'http://localhost:7000||https://matb.apexitworld.com';
+  if (typeof window === 'undefined') return 'http://localhost:7000';
   const hostname = window.location.hostname;
   const isHttps = window.location.protocol === 'https:';
-  // When accessed via tunnels (ngrok, etc.) or HTTPS, use Vite dev server proxy to avoid mixed content & port issues
-  if (isHttps || hostname.includes('ngrok') || hostname.includes('.dev') || hostname.includes('.app')) {
+  const port = window.location.port;
+
+  // 1. Any domain ending with apexitworld.com (mat.apexitworld.com, etc.)
+  if (hostname.includes('apexitworld.com')) {
+    return isHttps ? '' : 'https://matb.apexitworld.com';
+  }
+
+  // 2. Cloudflare tunnels, ngrok, or HTTPS environments
+  if (isHttps || hostname.includes('ngrok') || hostname.includes('trycloudflare') || hostname.includes('.dev') || hostname.includes('.app')) {
     return '';
   }
+
+  // 3. When accessed via Vite dev server (port 5173), Vite handles /api proxying to backend on localhost:7000
+  if (port === '5173') {
+    return '';
+  }
+
+  // 4. Standalone direct LAN access to Node server on port 7000
   if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
     return `http://${hostname}:7000`;
   }
+
   return 'http://localhost:7000';
 })();
 
@@ -61,10 +76,21 @@ const getHeaders = (customHeaders = {}) => {
 };
 
 // =============================================================================
-// FAST LOCALSTORAGE & MEMORY DATA-CACHE ENGINE (0ms Instant Loading)
+// IN-MEMORY DATA-CACHE (Session-only: Database is the sole source of truth)
 // =============================================================================
-const MEMORY_CACHE = new Map();
 const CACHE_PREFIX = 'matheat_cache_';
+const MEMORY_CACHE = new Map();
+
+// Purge any legacy persistent localStorage caches so stale mock records are never displayed
+if (typeof window !== 'undefined') {
+  try {
+    Object.keys(localStorage).forEach((k) => {
+      if (k.startsWith('matheat_cache_') || k.startsWith('matheat_confirmed_')) {
+        localStorage.removeItem(k);
+      }
+    });
+  } catch (_) {}
+}
 
 const normalizeKey = (endpoint) => {
   if (!endpoint) return '';
@@ -80,14 +106,6 @@ export const getCachedData = (endpoint, fallback = null) => {
     if (MEMORY_CACHE.has(cleanKey)) {
       return MEMORY_CACHE.get(cleanKey);
     }
-    const raw = localStorage.getItem(`${CACHE_PREFIX}${cleanKey}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.data !== undefined) {
-        MEMORY_CACHE.set(cleanKey, parsed.data);
-        return parsed.data;
-      }
-    }
   } catch (err) {
     console.warn(`[CACHE] Read error for ${endpoint}:`, err);
   }
@@ -99,19 +117,7 @@ export const setCachedData = (endpoint, data) => {
   try {
     const cleanKey = normalizeKey(endpoint);
     MEMORY_CACHE.set(cleanKey, data);
-    localStorage.setItem(
-      `${CACHE_PREFIX}${cleanKey}`,
-      JSON.stringify({ data, timestamp: Date.now() })
-    );
-  } catch (err) {
-    if (err.name === 'QuotaExceededError') {
-      try {
-        Object.keys(localStorage).forEach((k) => {
-          if (k.startsWith(CACHE_PREFIX)) localStorage.removeItem(k);
-        });
-      } catch (_) {}
-    }
-  }
+  } catch (_) {}
 };
 
 export const updateCacheWithEntity = (cacheKey, newEntity, idProp = '_id') => {
